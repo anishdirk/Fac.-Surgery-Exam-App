@@ -1,0 +1,6 @@
+{
+  "name": "Russian Medical MCQ DuoPrep",
+  "description": "Duolingo-style gamified practice interface for Russian surgical and medical examination MCQs with English navigation and study tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
