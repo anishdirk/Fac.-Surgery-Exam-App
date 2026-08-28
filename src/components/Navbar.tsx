@@ -13,18 +13,24 @@ import {
   HelpCircle,
   RotateCcw,
   Zap,
-  Settings
+  Settings,
+  Smartphone,
+  Stethoscope,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { UserProgress } from '../types';
 import { SoundEffects } from '../utils/audio';
+import { useTheme } from '../context/ThemeContext';
 
 interface NavbarProps {
-  currentTab: 'learn' | 'topics' | 'bank' | 'exam' | 'mistakes';
-  setCurrentTab: (tab: 'learn' | 'topics' | 'bank' | 'exam' | 'mistakes') => void;
+  currentTab: 'learn' | 'topics' | 'cases' | 'bank' | 'exam' | 'mistakes';
+  setCurrentTab: (tab: 'learn' | 'topics' | 'cases' | 'bank' | 'exam' | 'mistakes') => void;
   progress: UserProgress;
   onQuickPractice: (count: number) => void;
   onOpenGlossary: () => void;
   onOpenSettings: () => void;
+  onOpenInstallGuide: () => void;
   soundEnabled: boolean;
   setSoundEnabled: (val: boolean) => void;
   showTranslationByDefault: boolean;
@@ -39,14 +45,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   onQuickPractice,
   onOpenGlossary,
   onOpenSettings,
+  onOpenInstallGuide,
   soundEnabled,
   setSoundEnabled,
   showTranslationByDefault,
   setShowTranslationByDefault,
   mistakesCount
 }) => {
+  const { theme, toggleTheme, isDark } = useTheme();
+
   return (
-    <header className="sticky top-0 z-40 bg-[#0F1218]/95 backdrop-blur-md border-b border-slate-800">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0F1218]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
@@ -56,15 +65,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => setCurrentTab('learn')}
             className="flex items-center gap-3 cursor-pointer group select-none"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] group-hover:scale-105 transition-transform">
-              <span className="text-2xl font-black">🦉</span>
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.35)] group-hover:scale-105 transition-transform">
+              <Stethoscope className="w-5 h-5 text-slate-950 stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-white text-lg tracking-tight">DuoMed</span>
-                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider">RU-MED</span>
+                <span className="font-extrabold text-slate-900 dark:text-white text-lg tracking-tight">SurgiMed</span>
+                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider">RU-MED</span>
               </div>
-              <p className="text-xs text-slate-400 font-medium -mt-0.5">620 Russian Surgical MCQs</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium -mt-0.5">620 Surgical MCQs & Cases</p>
             </div>
           </div>
 
@@ -78,11 +87,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                 currentTab === 'learn'
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
               }`}
             >
-              <Zap className="w-4 h-4 text-emerald-400" />
+              <Zap className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
               <span>Learning Path</span>
             </button>
 
@@ -94,12 +103,28 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                 currentTab === 'topics'
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/40 shadow-[0_0_15px_rgba(14,165,233,0.2)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/40 shadow-[0_0_15px_rgba(14,165,233,0.15)]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
               }`}
             >
-              <Layers className="w-4 h-4 text-sky-400" />
+              <Layers className="w-4 h-4 text-sky-500 dark:text-sky-400" />
               <span>16 Topics</span>
+            </button>
+
+            <button
+              id="nav-tab-cases"
+              onClick={() => {
+                SoundEffects.playClick();
+                setCurrentTab('cases');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                currentTab === 'cases'
+                  ? 'bg-teal-500/15 text-teal-600 dark:text-teal-300 border border-teal-500/40 shadow-[0_0_15px_rgba(20,184,166,0.15)]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+              }`}
+            >
+              <Stethoscope className="w-4 h-4 text-teal-500 dark:text-teal-400" />
+              <span>Cases (78)</span>
             </button>
 
             <button
@@ -110,12 +135,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                 currentTab === 'bank'
-                  ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.2)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
               }`}
             >
-              <BookOpen className="w-4 h-4 text-indigo-400" />
-              <span>Question Bank (620)</span>
+              <BookOpen className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+              <span>MCQ Bank (620)</span>
             </button>
 
             <button
@@ -126,11 +151,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                 currentTab === 'exam'
-                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
               }`}
             >
-              <Clock className="w-4 h-4 text-amber-400" />
+              <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               <span>Exam Mode</span>
             </button>
 
@@ -143,11 +168,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                   currentTab === 'mistakes'
-                    ? 'bg-rose-500/15 text-rose-400 border border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.2)]'
-                    : 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/10'
+                    ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10'
                 }`}
               >
-                <RotateCcw className="w-4 h-4 text-rose-400" />
+                <RotateCcw className="w-4 h-4 text-rose-500 dark:text-rose-400" />
                 <span>Mistakes</span>
                 <span className="px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[10px] font-black">
                   {mistakesCount}
@@ -157,15 +182,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Gamification Counters & Tools */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             
             {/* Streak */}
             <div 
               id="header-streak-badge"
               title="Daily Study Streak"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-extrabold text-xs shadow-xs"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-extrabold text-xs shadow-xs"
             >
-              <Flame className="w-4 h-4 text-amber-400 fill-amber-400 animate-pulse" />
+              <Flame className="w-4 h-4 text-amber-500 dark:text-amber-400 fill-amber-400 animate-pulse" />
               <span>{progress.streakDays || progress.streak || 1}</span>
             </div>
 
@@ -173,9 +198,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div 
               id="header-xp-badge"
               title="Experience Points (XP)"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 font-extrabold text-xs shadow-xs"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 font-extrabold text-xs shadow-xs"
             >
-              <Sparkles className="w-4 h-4 text-sky-400 fill-sky-400" />
+              <Sparkles className="w-4 h-4 text-sky-500 dark:text-sky-400 fill-sky-400" />
               <span>{progress.totalXp || progress.xp || 0} XP</span>
             </div>
 
@@ -183,11 +208,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div 
               id="header-hearts-badge"
               title={progress.infiniteHearts ? "Infinite Hearts Mode Active" : `${progress.hearts}/5 Hearts`}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-extrabold text-xs shadow-xs"
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-extrabold text-xs shadow-xs"
             >
-              <Heart className="w-4 h-4 text-rose-400 fill-rose-400" />
+              <Heart className="w-4 h-4 text-rose-500 dark:text-rose-400 fill-rose-400" />
               <span>{progress.infiniteHearts ? '∞' : progress.hearts}</span>
             </div>
+
+            {/* Surgical Theme Switcher */}
+            <button
+              id="btn-theme-switcher"
+              onClick={() => {
+                SoundEffects.playClick();
+                toggleTheme();
+              }}
+              title={isDark ? "Switch to Clinical Light Theme" : "Switch to Surgical Dark Theme"}
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95"
+            >
+              {isDark ? (
+                <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-600 hover:-rotate-12 transition-transform" />
+              )}
+            </button>
 
             {/* Sound Toggle */}
             <button
@@ -198,9 +240,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 if (next) SoundEffects.playClick();
               }}
               title={soundEnabled ? "Mute Sound Effects" : "Enable Sound Effects"}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+              {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-400 dark:text-slate-500" />}
             </button>
 
             {/* Translation Assistant Toggle */}
@@ -213,8 +255,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={showTranslationByDefault ? "Auto English Translation: ON" : "Auto English Translation: OFF"}
               className={`p-2 rounded-xl transition-colors ${
                 showTranslationByDefault 
-                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-[0_0_10px_rgba(99,102,241,0.2)]' 
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/40 shadow-[0_0_10px_rgba(99,102,241,0.2)]' 
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Languages className="w-4 h-4" />
@@ -228,9 +270,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenGlossary();
               }}
               title="Medical Sign Glossary & Eponyms"
-              className="p-2 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
             >
               <HelpCircle className="w-4 h-4" />
+            </button>
+
+            {/* Install Android / PWA App */}
+            <button
+              id="btn-nav-install"
+              onClick={() => {
+                SoundEffects.playClick();
+                onOpenInstallGuide();
+              }}
+              title="Install Android App / PWA"
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors flex items-center gap-1"
+            >
+              <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </button>
 
             {/* Settings */}
@@ -241,7 +296,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenSettings();
               }}
               title="Study Preferences & Settings"
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -253,7 +308,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 onQuickPractice(10);
               }}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs shadow-[0_0_15px_rgba(16,185,129,0.25)] transition-all"
             >
               <Shuffle className="w-3.5 h-3.5" />
               <span>Shuffle 10</span>
@@ -264,35 +319,41 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
       
       {/* Mobile Sub-Navigation Bar */}
-      <div className="flex md:hidden items-center justify-around px-2 py-2 border-t border-slate-800 bg-[#0F1218] text-xs font-bold">
+      <div className="flex md:hidden items-center justify-around px-2 py-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0F1218] text-xs font-bold transition-colors">
         <button
           onClick={() => setCurrentTab('learn')}
-          className={`px-2.5 py-1 rounded-lg ${currentTab === 'learn' ? 'text-emerald-400 bg-emerald-500/15' : 'text-slate-400'}`}
+          className={`px-2.5 py-1 rounded-lg ${currentTab === 'learn' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/15' : 'text-slate-600 dark:text-slate-400'}`}
         >
           Path
         </button>
         <button
           onClick={() => setCurrentTab('topics')}
-          className={`px-2.5 py-1 rounded-lg ${currentTab === 'topics' ? 'text-sky-400 bg-sky-500/15' : 'text-slate-400'}`}
+          className={`px-2.5 py-1 rounded-lg ${currentTab === 'topics' ? 'text-sky-600 dark:text-sky-400 bg-sky-500/15' : 'text-slate-600 dark:text-slate-400'}`}
         >
           Topics
         </button>
         <button
-          onClick={() => setCurrentTab('bank')}
-          className={`px-2.5 py-1 rounded-lg ${currentTab === 'bank' ? 'text-indigo-400 bg-indigo-500/15' : 'text-slate-400'}`}
+          onClick={() => setCurrentTab('cases')}
+          className={`px-2.5 py-1 rounded-lg ${currentTab === 'cases' ? 'text-teal-600 dark:text-teal-400 bg-teal-500/15' : 'text-slate-600 dark:text-slate-400'}`}
         >
-          Bank (620)
+          Cases (78)
+        </button>
+        <button
+          onClick={() => setCurrentTab('bank')}
+          className={`px-2.5 py-1 rounded-lg ${currentTab === 'bank' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/15' : 'text-slate-600 dark:text-slate-400'}`}
+        >
+          MCQs
         </button>
         <button
           onClick={() => setCurrentTab('exam')}
-          className={`px-2.5 py-1 rounded-lg ${currentTab === 'exam' ? 'text-amber-400 bg-amber-500/15' : 'text-slate-400'}`}
+          className={`px-2.5 py-1 rounded-lg ${currentTab === 'exam' ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15' : 'text-slate-600 dark:text-slate-400'}`}
         >
           Exam
         </button>
         {mistakesCount > 0 && (
           <button
             onClick={() => setCurrentTab('mistakes')}
-            className={`px-2.5 py-1 rounded-lg ${currentTab === 'mistakes' ? 'text-rose-400 bg-rose-500/15' : 'text-slate-400'}`}
+            className={`px-2.5 py-1 rounded-lg ${currentTab === 'mistakes' ? 'text-rose-600 dark:text-rose-400 bg-rose-500/15' : 'text-slate-600 dark:text-slate-400'}`}
           >
             Mistakes ({mistakesCount})
           </button>

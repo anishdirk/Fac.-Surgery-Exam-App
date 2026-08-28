@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="shieldGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#0D9488" />
+    </linearGradient>
+    <filter id="glow512" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#10B981" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Maskable safe area background -->
+  <rect width="512" height="512" fill="#0A0C10" />
+  
+  <rect width="456" height="456" x="28" y="28" rx="96" fill="url(#bgGrad512)" stroke="#1E293B" stroke-width="4" />
+
+  <!-- Shield -->
+  <path d="M256 75 L395 135 C395 285 256 395 256 425 C256 395 117 285 117 135 Z" fill="url(#shieldGrad512)" filter="url(#glow512)" />
+  <path d="M256 95 L375 147 C375 275 256 373 256 400 C256 373 137 275 137 147 Z" fill="#064E3B" opacity="0.35" />
+
+  <!-- Medical Cross -->
+  <path d="M226 160 H286 V220 H346 V280 H286 V340 H226 V280 H166 V220 H226 Z" fill="#FFFFFF" />
+
+  <!-- Pulse line -->
+  <path d="M190 250 H220 L235 210 L256 290 L275 230 L290 250 H322" fill="none" stroke="#0D9488" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+
+  <text x="256" y="460" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="900" fill="#34D399" text-anchor="middle" letter-spacing="2">SURGICAL MCQ MASTER</text>
+</svg>

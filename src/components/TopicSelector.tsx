@@ -24,14 +24,14 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
       
       {/* Header */}
       <div className="mb-8">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 font-extrabold text-xs uppercase tracking-wider mb-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 font-extrabold text-xs uppercase tracking-wider mb-2">
           <Layers className="w-3.5 h-3.5" />
           <span>Surgical Curriculum</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
           16 Specialty Topics
         </h1>
-        <p className="text-sm text-slate-400 font-medium mt-1">
+        <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">
           Select any surgical topic to practice focused multiple-choice questions.
         </p>
       </div>
@@ -51,7 +51,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
             <div
               key={t.id}
               id={`topic-card-${t.id}`}
-              className="p-5 rounded-3xl bg-[#161A23] border border-slate-800 shadow-lg hover:border-slate-700 hover:bg-[#1E2533] transition-all flex flex-col justify-between group"
+              className="p-5 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-md hover:shadow-lg dark:hover:border-slate-700 hover:border-emerald-400/60 dark:hover:bg-[#1E2533] transition-all flex flex-col justify-between group"
             >
               <div>
                 {/* Top badges */}
@@ -60,30 +60,30 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
                     {t.icon}
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-black text-slate-300 bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-md">
+                    <span className="text-xs font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md">
                       Q {t.questionRange[0]}–{t.questionRange[1]}
                     </span>
-                    <div className="text-[11px] text-slate-400 font-bold mt-0.5">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
                       {t.count} questions
                     </div>
                   </div>
                 </div>
 
                 {/* Titles */}
-                <h3 className="font-extrabold text-white text-base leading-snug group-hover:text-emerald-400 transition-colors">
+                <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                   {t.titleEn}
                 </h3>
-                <p className="text-xs font-medium text-slate-400 mt-1 line-clamp-1">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
                   {t.titleRu}
                 </p>
 
                 {/* Progress Bar */}
                 <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
                     <span>Mastery</span>
-                    <span className="text-slate-300">{completedInTopic} / {t.count} ({percent}%)</span>
+                    <span className="text-slate-700 dark:text-slate-300">{completedInTopic} / {t.count} ({percent}%)</span>
                   </div>
-                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         percent === 100 
@@ -97,7 +97,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
               </div>
 
               {/* Actions */}
-              <div className="mt-5 pt-4 border-t border-slate-800 flex items-center gap-2">
+              <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
                 <button
                   id={`btn-topic-practice-${t.id}`}
                   onClick={() => {
@@ -116,7 +116,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
                     SoundEffects.playClick();
                     onBrowseTopic(t.id);
                   }}
-                  className="p-2.5 rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                  className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
                   title="Browse all questions in topic"
                 >
                   <BookOpen className="w-4 h-4" />

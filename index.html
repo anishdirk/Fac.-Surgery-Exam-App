@@ -2,15 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-    <meta name="description" content="An application built with Google AI Studio." />
-    <meta property="og:title" content="My Google AI Studio App" />
-    <meta property="og:description" content="An application built with Google AI Studio." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- App Identity & PWA Manifest -->
+    <title>Surgical MedPrep RU | 620 MCQs & Cases</title>
+    <meta name="description" content="Gamified high-yield practice for 620 Russian surgical MCQs and 78 clinical cases with bilingual Russian-English support." />
+    
+    <!-- PWA Manifest & App Icons -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.svg" />
+
+    <!-- Android & Chrome Theme & Fullscreen -->
+    <meta name="theme-color" content="#0A0C10" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="DuoMed" />
+
+    <!-- iOS Safari PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="DuoMed" />
+
+    <!-- Open Graph / Social -->
+    <meta property="og:title" content="DuoMed | Russian Medical MCQ Prep" />
+    <meta property="og:description" content="620 Russian surgical MCQs gamified with daily streaks, hearts, instant feedback, and English navigation." />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="/favicon.svg" />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
-  <body>
+  <body class="bg-[#0A0C10] text-slate-100 antialiased select-none overscroll-none">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,6 +1,6 @@
 {
   "name": "Russian Medical MCQ DuoPrep",
-  "description": "Duolingo-style gamified practice interface for Russian surgical and medical examination MCQs with English navigation and study tools.",
-  "requestFramePermissions": [],
+  "description": "Gamified practice interface for 620 Russian surgical MCQs and 78 multi-part situational clinical case challenges with bilingual rationale, PWA, and Android install capabilities.",
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

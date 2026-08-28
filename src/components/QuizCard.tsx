@@ -19,6 +19,8 @@ interface QuizCardProps {
   question: Question;
   questionIndex: number;
   totalQuestions: number;
+  completedCount: number;
+  isRepeat?: boolean;
   hearts: number;
   infiniteHearts: boolean;
   combo: number;
@@ -32,6 +34,8 @@ export const QuizCard: React.FC<QuizCardProps> = ({
   question,
   questionIndex,
   totalQuestions,
+  completedCount,
+  isRepeat = false,
   hearts,
   infiniteHearts,
   combo,
@@ -103,15 +107,11 @@ export const QuizCard: React.FC<QuizCardProps> = ({
   const handleSubmit = () => {
     if (!selectedKey || isSubmitted) return;
 
+    const isCorrect = selectedKey.toLowerCase() === question.correctKey.toLowerCase();
     setIsSubmitted(true);
-    const isCorrect = selectedKey.trim().toLowerCase() === question.correctKey.trim().toLowerCase();
 
     if (isCorrect) {
-      if (combo >= 2) {
-        SoundEffects.playCombo();
-      } else {
-        SoundEffects.playCorrect();
-      }
+      SoundEffects.playCorrect();
     } else {
       SoundEffects.playIncorrect();
     }
@@ -119,7 +119,7 @@ export const QuizCard: React.FC<QuizCardProps> = ({
 
   const handleContinue = () => {
     if (!selectedKey) return;
-    const isCorrect = selectedKey.trim().toLowerCase() === question.correctKey.trim().toLowerCase();
+    const isCorrect = selectedKey.toLowerCase() === question.correctKey.toLowerCase();
     onAnswer(selectedKey, isCorrect);
   };
 
@@ -141,17 +141,17 @@ export const QuizCard: React.FC<QuizCardProps> = ({
               SoundEffects.playClick();
               onExit();
             }}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             title="Exit quiz"
           >
             <X className="w-6 h-6" />
           </button>
 
           {/* Immersive Glowing Progress Bar */}
-          <div className="flex-1 h-3.5 bg-slate-800 rounded-full overflow-hidden relative shadow-inner">
+          <div className="flex-1 h-3.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative shadow-inner">
             <div 
               className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300 relative shadow-[0_0_12px_rgba(16,185,129,0.5)]"
-              style={{ width: `${Math.max(5, ((questionIndex + 1) / totalQuestions) * 100)}%` }}
+              style={{ width: `${Math.min(100, Math.max(5, (completedCount / Math.max(1, totalQuestions)) * 100))}%` }}
             >
               <div className="absolute top-0.5 right-1 w-2 h-1 bg-white/50 rounded-full" />
             </div>
@@ -159,14 +159,14 @@ export const QuizCard: React.FC<QuizCardProps> = ({
 
           {/* Combo Indicator */}
           {combo > 1 && (
-            <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 font-black text-xs">
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-black text-xs">
               <Flame className="w-4 h-4 fill-amber-400 text-amber-400" />
               <span>{combo}</span>
             </div>
           )}
 
           {/* Hearts Indicator */}
-          <div className="flex items-center gap-1 px-3 py-1 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 font-extrabold text-sm">
+          <div className="flex items-center gap-1 px-3 py-1 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-extrabold text-sm">
             <Heart className="w-4 h-4 fill-rose-400 text-rose-400" />
             <span>{infiniteHearts ? '∞' : hearts}</span>
           </div>
@@ -180,8 +180,8 @@ export const QuizCard: React.FC<QuizCardProps> = ({
             }}
             className={`p-2 rounded-xl transition-all ${
               showTranslation
-                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-[0_0_10px_rgba(99,102,241,0.2)]'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/40 shadow-[0_0_10px_rgba(99,102,241,0.2)]'
+                : 'text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="Toggle English Translation"
           >
@@ -195,7 +195,7 @@ export const QuizCard: React.FC<QuizCardProps> = ({
               SoundEffects.playClick();
               onOpenGlossary();
             }}
-            className="p-2 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
             title="Open Medical Glossary"
           >
             <HelpCircle className="w-5 h-5" />
@@ -203,31 +203,42 @@ export const QuizCard: React.FC<QuizCardProps> = ({
 
         </div>
 
+        {/* Repeat Question Badge */}
+        {isRepeat && (
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold mb-3 shadow-[0_0_12px_rgba(245,158,11,0.15)] animate-in fade-in slide-in-from-top-1 duration-200">
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Mistake Repeat • Answer correctly to master this level!</span>
+          </div>
+        )}
+
         {/* Question Metadata Tags */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 font-black text-xs tracking-wider">
+          <span className="px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-black text-xs tracking-wider">
             QUESTION {question.number} / {totalQuestions > 600 ? 620 : totalQuestions}
           </span>
-          <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold text-xs">
+          <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs">
             {question.topicId.toUpperCase()}
           </span>
+          <span className="px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-500/30 text-sky-700 dark:text-sky-400 font-bold text-xs">
+            {completedCount}/{totalQuestions} Mastered
+          </span>
           {question.page && (
-            <span className="px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60 text-slate-400 font-medium text-xs">
+            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700/60 text-slate-500 dark:text-slate-400 font-medium text-xs">
               Page {question.page}
             </span>
           )}
         </div>
 
         {/* Russian Question Card */}
-        <div className="p-5 sm:p-6 rounded-3xl bg-[#161A23] border border-slate-800 shadow-xl mb-4">
-          <div className="text-white font-bold text-base sm:text-lg leading-relaxed tracking-tight whitespace-pre-line">
+        <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-xl mb-4 transition-colors">
+          <div className="text-slate-900 dark:text-white font-bold text-base sm:text-lg leading-relaxed tracking-tight whitespace-pre-line">
             {question.questionRu}
           </div>
 
           {/* English Translation (Instant Study Aid) */}
           {showTranslation && (question.questionEn || question.keywordsEn) && (
-            <div className="mt-3 pt-3 border-t border-slate-800 text-sky-200 font-medium text-sm sm:text-base leading-relaxed bg-sky-950/30 border border-sky-500/20 p-3 rounded-2xl">
-              <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 block mb-0.5">
+            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-sky-900 dark:text-sky-200 font-medium text-sm sm:text-base leading-relaxed bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-500/20 p-3 rounded-2xl">
+              <span className="text-[10px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400 block mb-0.5">
                 English Translation / Key Clinical Meaning:
               </span>
               {question.questionEn || question.keywordsEn?.join(', ')}
@@ -242,24 +253,24 @@ export const QuizCard: React.FC<QuizCardProps> = ({
             const isThisCorrect = isSubmitted && opt.key.toLowerCase() === question.correctKey.toLowerCase();
             const isThisWrong = isSubmitted && isSelected && !isThisCorrect;
 
-            let cardStyles = "bg-[#0F1218] border border-slate-800 text-slate-200 hover:border-slate-700 hover:bg-[#161A23] shadow-xs";
-            let badgeStyles = "bg-slate-800 border-slate-700 text-slate-400";
+            let cardStyles = "bg-white dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-[#161A23] shadow-xs";
+            let badgeStyles = "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400";
 
             if (!isSubmitted) {
               if (isSelected) {
-                cardStyles = "bg-sky-500/15 border-2 border-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.2)]";
+                cardStyles = "bg-sky-50 dark:bg-sky-500/15 border-2 border-sky-500 text-slate-900 dark:text-white shadow-[0_0_20px_rgba(14,165,233,0.2)]";
                 badgeStyles = "bg-sky-500 border-sky-400 text-white shadow-[0_0_10px_rgba(14,165,233,0.4)]";
               }
             } else {
               if (isThisCorrect) {
-                cardStyles = "bg-emerald-500/20 border-2 border-emerald-500 text-white shadow-[0_0_25px_rgba(16,185,129,0.3)]";
+                cardStyles = "bg-emerald-50 dark:bg-emerald-500/20 border-2 border-emerald-500 text-slate-900 dark:text-white shadow-[0_0_25px_rgba(16,185,129,0.3)]";
                 badgeStyles = "bg-emerald-500 border-emerald-400 text-slate-950 font-black shadow-[0_0_15px_rgba(16,185,129,0.5)]";
               } else if (isThisWrong) {
-                cardStyles = "bg-rose-500/20 border-2 border-rose-500 text-white shadow-[0_0_25px_rgba(244,63,94,0.3)]";
+                cardStyles = "bg-rose-50 dark:bg-rose-500/20 border-2 border-rose-500 text-slate-900 dark:text-white shadow-[0_0_25px_rgba(244,63,94,0.3)]";
                 badgeStyles = "bg-rose-500 border-rose-400 text-white shadow-[0_0_15px_rgba(244,63,94,0.5)]";
               } else {
-                cardStyles = "bg-[#0F1218]/40 border border-slate-800/60 text-slate-500 opacity-50";
-                badgeStyles = "bg-slate-900 border-slate-800 text-slate-600";
+                cardStyles = "bg-slate-50 dark:bg-[#0F1218]/40 border border-slate-200 dark:border-slate-800/60 text-slate-400 dark:text-slate-500 opacity-50";
+                badgeStyles = "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600";
               }
             }
 
@@ -285,14 +296,14 @@ export const QuizCard: React.FC<QuizCardProps> = ({
                     {opt.textRu}
                   </div>
                   {showTranslation && opt.textEn && (
-                    <div className="text-xs sm:text-sm font-medium text-slate-400 mt-1">
+                    <div className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
                       {opt.textEn}
                     </div>
                   )}
                 </div>
 
                 {/* Keyboard shortcut indicator */}
-                <div className="hidden sm:block text-[11px] font-bold text-slate-500 border border-slate-800 px-1.5 py-0.5 rounded-md self-center">
+                <div className="hidden sm:block text-[11px] font-bold text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 px-1.5 py-0.5 rounded-md self-center">
                   {idx + 1}
                 </div>
               </div>
@@ -306,16 +317,16 @@ export const QuizCard: React.FC<QuizCardProps> = ({
       <div className={`mt-6 pt-4 border-t transition-all ${
         isSubmitted
           ? isCorrectChoice
-            ? 'bg-emerald-950/40 border-emerald-500/30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-4 sm:p-6 rounded-b-3xl'
-            : 'bg-rose-950/40 border-rose-500/30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-4 sm:p-6 rounded-b-3xl'
-          : 'bg-transparent border-slate-800'
+            ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500/30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-4 sm:p-6 rounded-b-3xl'
+            : 'bg-rose-50 dark:bg-rose-950/40 border-rose-500/30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-4 sm:p-6 rounded-b-3xl'
+          : 'bg-transparent border-slate-200 dark:border-slate-800'
       }`}>
         
         {/* State 1: Before Submission */}
         {!isSubmitted ? (
           <div className="flex items-center justify-between gap-4">
-            <div className="text-xs text-slate-400 font-medium hidden sm:block">
-              Press <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded font-bold text-slate-300">1-5</kbd> to select, <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded font-bold text-slate-300">Enter</kbd> to check
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
+              Press <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded font-bold text-slate-700 dark:text-slate-300">1-5</kbd> to select, <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded font-bold text-slate-700 dark:text-slate-300">Enter</kbd> to check
             </div>
             <button
               id="btn-quiz-check"
@@ -324,7 +335,7 @@ export const QuizCard: React.FC<QuizCardProps> = ({
               className={`w-full sm:w-auto min-w-[180px] px-8 py-3.5 rounded-2xl font-black text-sm tracking-wide uppercase transition-all duration-150 active:scale-95 ${
                 selectedKey
                   ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.35)] cursor-pointer'
-                  : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-700 cursor-not-allowed'
               }`}
             >
               Check Answer
@@ -338,14 +349,14 @@ export const QuizCard: React.FC<QuizCardProps> = ({
                 <CheckCircle2 className="w-7 h-7 stroke-[3]" />
               </div>
               <div>
-                <h4 className="text-lg font-black text-emerald-400 leading-tight">
+                <h4 className="text-lg font-black text-emerald-700 dark:text-emerald-400 leading-tight">
                   Excellent! Правильно!
                 </h4>
-                <p className="text-xs font-bold text-emerald-300">
+                <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
                   +10 XP {combo > 1 ? `• 🔥 Combo x${combo}` : ''}
                 </p>
                 {(question.explanationEn || question.explanation) && (
-                  <p className="text-xs text-emerald-200 font-medium mt-0.5 line-clamp-2">
+                  <p className="text-xs text-emerald-900 dark:text-emerald-200 font-medium mt-0.5 line-clamp-2">
                     {question.explanationEn || question.explanation}
                   </p>
                 )}
@@ -369,22 +380,26 @@ export const QuizCard: React.FC<QuizCardProps> = ({
                 <XCircle className="w-7 h-7 stroke-[3]" />
               </div>
               <div>
-                <h4 className="text-lg font-black text-rose-400 leading-tight">
+                <h4 className="text-lg font-black text-rose-600 dark:text-rose-400 leading-tight">
                   Correct Answer: ({question.correctKey.toUpperCase()})
                 </h4>
-                <p className="text-sm font-bold text-rose-200 mt-0.5">
+                <p className="text-sm font-bold text-rose-800 dark:text-rose-200 mt-0.5">
                   {correctOption?.textRu}
                 </p>
                 {correctOption?.textEn && (
-                  <p className="text-xs font-medium text-rose-300 mt-0.5">
+                  <p className="text-xs font-medium text-rose-700 dark:text-rose-300 mt-0.5">
                     {correctOption.textEn}
                   </p>
                 )}
                 {(question.explanationEn || question.explanation) && (
-                  <p className="text-xs text-slate-300 font-medium mt-1">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1">
                     💡 {question.explanationEn || question.explanation}
                   </p>
                 )}
+                <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-500/20 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-200 text-xs font-bold w-fit">
+                  <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                  <span>Will repeat at the end of this level until mastered</span>
+                </div>
               </div>
             </div>
 

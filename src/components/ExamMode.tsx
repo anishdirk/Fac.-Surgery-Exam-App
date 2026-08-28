@@ -114,17 +114,17 @@ export const ExamMode: React.FC<ExamModeProps> = ({
   if (!isExamActive && !isExamFinished) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="p-6 sm:p-8 rounded-3xl bg-[#161A23] border border-slate-800 shadow-2xl">
+        <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-xl">
           
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-400">
               <Clock className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-white">
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white">
                 Surgical Board Exam Simulator
               </h1>
-              <p className="text-xs text-slate-400 font-medium">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 Test your knowledge under timed exam conditions from all 620 official questions.
               </p>
             </div>
@@ -133,7 +133,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
           <div className="space-y-6 my-6">
             {/* Question count selection */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Number of Questions:
               </label>
               <div className="grid grid-cols-4 gap-3">
@@ -144,7 +144,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
                     className={`py-3 rounded-2xl font-black text-sm transition-all ${
                       examQuestionCount === count
                         ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.35)]'
-                        : 'bg-[#0F1218] border border-slate-800 text-slate-300 hover:bg-slate-800'
+                        : 'bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     {count} Questions
@@ -155,7 +155,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
 
             {/* Time limit selection */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Time Limit:
               </label>
               <div className="grid grid-cols-4 gap-3">
@@ -166,7 +166,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
                     className={`py-3 rounded-2xl font-black text-sm transition-all ${
                       examDurationMinutes === mins
                         ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.35)]'
-                        : 'bg-[#0F1218] border border-slate-800 text-slate-300 hover:bg-slate-800'
+                        : 'bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     {mins} Minutes
@@ -176,12 +176,12 @@ export const ExamMode: React.FC<ExamModeProps> = ({
             </div>
 
             {/* Information notice */}
-            <div className="p-4 rounded-2xl bg-[#0F1218] border border-slate-800 text-xs text-slate-300 space-y-1.5">
-              <div className="font-extrabold text-white flex items-center gap-1.5">
-                <Trophy className="w-4 h-4 text-amber-400" />
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
+              <div className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Trophy className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                 <span>Simulation Rules:</span>
               </div>
-              <ul className="list-disc pl-5 space-y-1 text-slate-400">
+              <ul className="list-disc pl-5 space-y-1 text-slate-500 dark:text-slate-400">
                 <li>Instant answers and explanations are hidden until exam completion.</li>
                 <li>You can jump between questions and change answers freely during the exam.</li>
                 <li>Passing threshold is 70% accuracy (official Russian medical standard).</li>
@@ -189,10 +189,10 @@ export const ExamMode: React.FC<ExamModeProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
             <button
               onClick={onExit}
-              className="px-5 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-800 font-bold text-sm"
+              className="px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-sm"
             >
               Cancel
             </button>
@@ -222,12 +222,12 @@ export const ExamMode: React.FC<ExamModeProps> = ({
       <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
         
         {/* Top Sticky Bar */}
-        <div className="p-4 rounded-2xl bg-[#161A23] border border-slate-800 shadow-xl mb-4 flex items-center justify-between gap-4">
+        <div className="p-4 rounded-2xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-md mb-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="font-extrabold text-sm text-white">
+            <span className="font-extrabold text-sm text-slate-900 dark:text-white">
               Question {currentIndex + 1} of {examQuestions.length}
             </span>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               ({answeredCount} answered)
             </span>
           </div>
@@ -235,8 +235,8 @@ export const ExamMode: React.FC<ExamModeProps> = ({
           {/* Countdown Clock */}
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-mono font-black text-sm ${
             isUrgent 
-              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50 animate-pulse' 
-              : 'bg-[#0F1218] text-amber-400 border border-slate-700'
+              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/50 animate-pulse' 
+              : 'bg-slate-100 dark:bg-[#0F1218] text-amber-600 dark:text-amber-400 border border-slate-200 dark:border-slate-700'
           }`}>
             <Clock className="w-4 h-4" />
             <span>{formatTime(timeLeftSeconds)}</span>
@@ -248,8 +248,8 @@ export const ExamMode: React.FC<ExamModeProps> = ({
               onClick={() => setShowTranslations(!showTranslations)}
               className={`p-2 rounded-xl text-xs font-bold border transition-colors ${
                 showTranslations 
-                  ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300' 
-                  : 'bg-[#0F1218] border-slate-800 text-slate-400 hover:text-white'
+                  ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-600 dark:text-indigo-300' 
+                  : 'bg-slate-100 dark:bg-[#0F1218] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
               title="Toggle English Translation"
             >
@@ -262,7 +262,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
                   finishExam();
                 }
               }}
-              className="px-4 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40 font-bold text-xs transition-colors"
+              className="px-4 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500 text-rose-600 hover:text-white dark:text-rose-300 border border-rose-500/40 font-bold text-xs transition-colors"
             >
               Finish & Grade
             </button>
@@ -270,7 +270,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
         </div>
 
         {/* Question Palette (Grid of mini numbers to jump directly) */}
-        <div className="p-3 rounded-2xl bg-[#0F1218] border border-slate-800 mb-4 overflow-x-auto flex items-center gap-1.5 scrollbar-thin">
+        <div className="p-3 rounded-2xl bg-white dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800 mb-4 overflow-x-auto flex items-center gap-1.5 scrollbar-thin">
           {examQuestions.map((q, idx) => {
             const hasAnswered = !!userAnswers[q.id];
             const isSelected = idx === currentIndex;
@@ -283,8 +283,8 @@ export const ExamMode: React.FC<ExamModeProps> = ({
                   isSelected
                     ? 'bg-amber-500 text-slate-950 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
                     : hasAnswered
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {idx + 1}
@@ -294,22 +294,22 @@ export const ExamMode: React.FC<ExamModeProps> = ({
         </div>
 
         {/* Active Question Card */}
-        <div className="p-6 rounded-3xl bg-[#161A23] border border-slate-800 shadow-xl mb-4">
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-md mb-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-black text-xs">
+            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-black text-xs">
               Original #{currentQ.number}
             </span>
-            <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-xs uppercase">
+            <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase">
               {currentQ.topicId}
             </span>
           </div>
 
-          <p className="font-extrabold text-white text-base sm:text-lg leading-relaxed">
+          <p className="font-extrabold text-slate-900 dark:text-white text-base sm:text-lg leading-relaxed">
             {currentQ.questionRu}
           </p>
 
           {showTranslations && (currentQ.questionEn || currentQ.keywordsEn) && (
-            <p className="text-sm font-medium text-sky-200 mt-2 bg-sky-950/30 border border-sky-500/20 p-2.5 rounded-xl">
+            <p className="text-sm font-medium text-sky-900 dark:text-sky-200 mt-2 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-500/20 p-2.5 rounded-xl">
               {currentQ.questionEn || currentQ.keywordsEn?.join(', ')}
             </p>
           )}
@@ -331,14 +331,14 @@ export const ExamMode: React.FC<ExamModeProps> = ({
                   }}
                   className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-start gap-3.5 select-none ${
                     isSelected
-                      ? 'bg-amber-500/15 border-2 border-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.2)]'
-                      : 'bg-[#0F1218] border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-[#1E2533]'
+                      ? 'bg-amber-500/15 border-2 border-amber-500 text-slate-900 dark:text-white shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                      : 'bg-slate-50 dark:bg-[#0F1218] border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-[#1E2533]'
                   }`}
                 >
                   <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-sm uppercase shrink-0 ${
                     isSelected
                       ? 'bg-amber-500 text-slate-950'
-                      : 'bg-slate-800 border border-slate-700 text-slate-400'
+                      : 'bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400'
                   }`}>
                     {opt.key}
                   </span>
@@ -346,7 +346,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
                   <div className="flex-1 font-bold text-sm sm:text-base pt-0.5">
                     <div>{opt.textRu}</div>
                     {showTranslations && opt.textEn && (
-                      <div className="text-xs font-medium text-slate-400 mt-0.5">
+                      <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
                         {opt.textEn}
                       </div>
                     )}
@@ -365,7 +365,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
               SoundEffects.playClick();
               setCurrentIndex(prev => prev - 1);
             }}
-            className="px-5 py-3 rounded-2xl border border-slate-800 bg-[#161A23] text-slate-300 hover:bg-slate-800 hover:text-white font-bold text-xs disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
+            className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#161A23] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white font-bold text-xs disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
             <ChevronLeft className="w-4 h-4" />
             <span>Previous</span>
@@ -401,16 +401,16 @@ export const ExamMode: React.FC<ExamModeProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="p-6 sm:p-8 rounded-3xl bg-[#161A23] border border-slate-800 shadow-2xl text-center mb-8">
+      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-xl text-center mb-8">
         
-        <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl shadow-xl bg-[#0F1218] border border-slate-700">
+        <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl shadow-md bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-700">
           {isPass ? '🎓' : '📚'}
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-black text-white">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
           {isPass ? 'Exam Passed!' : 'Exam Completed'}
         </h1>
-        <p className="text-xs text-slate-400 font-medium mt-1">
+        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
           {isPass 
             ? 'Outstanding performance! You passed the Russian surgical board simulation.' 
             : 'Good effort! Review the questions you missed below to boost your score.'}
@@ -418,17 +418,17 @@ export const ExamMode: React.FC<ExamModeProps> = ({
 
         {/* Score cards */}
         <div className="grid grid-cols-3 gap-4 my-6 max-w-lg mx-auto">
-          <div className="p-4 rounded-2xl bg-[#0F1218] border border-slate-800">
-            <div className="text-2xl font-black text-emerald-400">{stats.percentage}%</div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase mt-0.5">Score</div>
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800">
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{stats.percentage}%</div>
+            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mt-0.5">Score</div>
           </div>
-          <div className="p-4 rounded-2xl bg-[#0F1218] border border-slate-800">
-            <div className="text-2xl font-black text-sky-400">{stats.correct} / {stats.total}</div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase mt-0.5">Correct</div>
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800">
+            <div className="text-2xl font-black text-sky-600 dark:text-sky-400">{stats.correct} / {stats.total}</div>
+            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mt-0.5">Correct</div>
           </div>
-          <div className="p-4 rounded-2xl bg-[#0F1218] border border-slate-800">
-            <div className="text-2xl font-black text-amber-400">+{stats.correct * 15}</div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase mt-0.5">XP Gained</div>
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800">
+            <div className="text-2xl font-black text-amber-600 dark:text-amber-400">+{stats.correct * 15}</div>
+            <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mt-0.5">XP Gained</div>
           </div>
         </div>
 
@@ -443,7 +443,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
 
           <button
             onClick={onExit}
-            className="px-6 py-3 rounded-2xl border border-slate-700 bg-slate-800 text-white font-bold text-xs hover:bg-slate-700"
+            className="px-6 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700"
           >
             Return to Learning Path
           </button>
@@ -452,7 +452,7 @@ export const ExamMode: React.FC<ExamModeProps> = ({
       </div>
 
       {/* Question Breakdown List */}
-      <h3 className="text-lg font-black text-white mb-4">Detailed Question Review</h3>
+      <h3 className="text-lg font-black text-slate-900 dark:text-white mb-4">Detailed Question Review</h3>
       <div className="space-y-3">
         {examQuestions.map((q, idx) => {
           const userKey = userAnswers[q.id];
@@ -463,40 +463,40 @@ export const ExamMode: React.FC<ExamModeProps> = ({
           return (
             <div
               key={q.id}
-              className={`p-4 sm:p-5 rounded-2xl bg-[#161A23] border ${
+              className={`p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#161A23] border ${
                 isCorrect ? 'border-emerald-500/40' : 'border-rose-500/40'
               } shadow-sm`}
             >
               <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs font-black text-slate-300">
+                <span className="text-xs font-black text-slate-700 dark:text-slate-300">
                   Question #{idx + 1} (Official #{q.number})
                 </span>
                 <span className={`px-2 py-0.5 rounded text-xs font-black uppercase ${
                   isCorrect 
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30' 
+                    : 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/30'
                 }`}>
                   {isCorrect ? 'Correct (+15 XP)' : 'Incorrect'}
                 </span>
               </div>
 
-              <p className="font-bold text-white text-sm">
+              <p className="font-bold text-slate-900 dark:text-white text-sm">
                 {q.questionRu}
               </p>
 
               <div className="mt-3 text-xs space-y-1">
-                <div className="text-slate-400">
-                  Your Answer: <span className={isCorrect ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                <div className="text-slate-600 dark:text-slate-400">
+                  Your Answer: <span className={isCorrect ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-rose-600 dark:text-rose-400 font-bold'}>
                     ({userKey ? userKey.toUpperCase() : 'Unanswered'}) {userOpt?.textRu || '—'}
                   </span>
                 </div>
                 {!isCorrect && (
-                  <div className="text-emerald-400 font-bold">
+                  <div className="text-emerald-600 dark:text-emerald-400 font-bold">
                     Correct Answer: ({q.correctKey.toUpperCase()}) {correctOpt?.textRu}
                   </div>
                 )}
                 {(q.explanationEn || q.explanation) && (
-                  <div className="text-slate-400 mt-1">
+                  <div className="text-slate-600 dark:text-slate-400 mt-1">
                     💡 {q.explanationEn || q.explanation}
                   </div>
                 )}

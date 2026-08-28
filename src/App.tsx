@@ -1,20 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { allQuestions } from './data/questions';
 import { topics } from './data/topics';
-import { Question, UserProgress, QuizSession } from './types';
+import { allCases, getCasesByTopic, getCaseById } from './data/cases';
+import { Question, UserProgress, QuizSession, ClinicalCase, CaseProgress } from './types';
 import { Navbar } from './components/Navbar';
 import { DuolingoPath } from './components/DuolingoPath';
 import { QuizCard } from './components/QuizCard';
 import { TopicSelector } from './components/TopicSelector';
 import { QuestionBank } from './components/QuestionBank';
 import { ExamMode } from './components/ExamMode';
+import { CaseTopicSelector } from './components/CaseTopicSelector';
+import { CaseReviewCard } from './components/CaseReviewCard';
 import { MistakesReviewModal } from './components/MistakesReviewModal';
 import { LessonCompleteModal } from './components/LessonCompleteModal';
 import { GlossaryModal } from './components/GlossaryModal';
 import { SettingsModal } from './components/SettingsModal';
+import { InstallAppBanner } from './components/InstallAppBanner';
+import { InstallGuideModal } from './components/InstallGuideModal';
 import { SoundEffects } from './utils/audio';
 
 const STORAGE_KEY = 'duomed_ru_progress_v2';
+const CASES_STORAGE_KEY = 'duomed_ru_cases_v1';
+
+const defaultCaseProgress: CaseProgress = {
+  reviewedCaseIds: [],
+  caseSelfRating: {},
+  bookmarkedCaseIds: []
+};
 
 const defaultProgress: UserProgress = {
   hearts: 5,
@@ -58,6 +70,27 @@ export default function App() {
     }
   }, [progress]);
 
+  // 1b. Persistent Clinical Cases Progress State (Isolated from MCQs)
+  const [caseProgress, setCaseProgress] = useState<CaseProgress>(() => {
+    try {
+      const saved = localStorage.getItem(CASES_STORAGE_KEY);
+      if (saved) {
+        return { ...defaultCaseProgress, ...JSON.parse(saved) };
+      }
+    } catch (e) {
+      console.warn("Failed to load case progress from localStorage", e);
+    }
+    return defaultCaseProgress;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CASES_STORAGE_KEY, JSON.stringify(caseProgress));
+    } catch (e) {
+      console.warn("Failed to save case progress to localStorage", e);
+    }
+  }, [caseProgress]);
+
   // Settings
   const [soundEnabled, setSoundEnabled] = useState<boolean>(progress.soundEnabled ?? true);
   const [showTranslationByDefault, setShowTranslationByDefault] = useState<boolean>(progress.autoTranslate ?? false);
@@ -91,15 +124,114 @@ export default function App() {
   }, []);
 
   // 2. Navigation State
-  const [currentTab, setCurrentTab] = useState<'learn' | 'topics' | 'bank' | 'exam' | 'mistakes'>('learn');
+  const [currentTab, setCurrentTab] = useState<'learn' | 'topics' | 'cases' | 'bank' | 'exam' | 'mistakes'>('learn');
   const [activeSession, setActiveSession] = useState<QuizSession | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [currentCombo, setCurrentCombo] = useState<number>(0);
+
+  // Active Case Session State (For reviewing a topic's or custom set's clinical cases)
+  const [activeCaseSession, setActiveCaseSession] = useState<{
+    cases: ClinicalCase[];
+    currentIndex: number;
+    title: string;
+  } | null>(null);
 
   // Modals
   const [isLessonCompleteOpen, setIsLessonCompleteOpen] = useState<boolean>(false);
   const [isGlossaryOpen, setIsGlossaryOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [isInstallGuideOpen, setIsInstallGuideOpen] = useState<boolean>(false);
+
+  // Handlers for Clinical Cases
+  const handleSelectCaseTopic = (topicId: string) => {
+    const topicCases = allCases.filter(c => c.topicId === topicId);
+    const targetTopic = topics.find(t => t.id === topicId);
+    if (topicCases.length === 0) return;
+
+    // Mark the first case as reviewed
+    const firstCase = topicCases[0];
+    setCaseProgress(prev => ({
+      ...prev,
+      reviewedCaseIds: prev.reviewedCaseIds.includes(firstCase.id)
+        ? prev.reviewedCaseIds
+        : [...prev.reviewedCaseIds, firstCase.id]
+    }));
+
+    setActiveCaseSession({
+      cases: topicCases,
+      currentIndex: 0,
+      title: targetTopic ? targetTopic.titleEn : 'Clinical Cases'
+    });
+  };
+
+  const handleSelectSingleCase = (caseId: number) => {
+    const targetCase = allCases.find(c => c.id === caseId);
+    if (!targetCase) return;
+
+    const topicCases = allCases.filter(c => c.topicId === targetCase.topicId);
+    const indexInTopic = topicCases.findIndex(c => c.id === caseId);
+
+    setCaseProgress(prev => ({
+      ...prev,
+      reviewedCaseIds: prev.reviewedCaseIds.includes(caseId)
+        ? prev.reviewedCaseIds
+        : [...prev.reviewedCaseIds, caseId]
+    }));
+
+    setActiveCaseSession({
+      cases: topicCases.length > 0 ? topicCases : [targetCase],
+      currentIndex: indexInTopic >= 0 ? indexInTopic : 0,
+      title: targetCase.topicTitleEn
+    });
+  };
+
+  const handleStartCustomCaseSession = (casesList: ClinicalCase[], title: string) => {
+    if (casesList.length === 0) return;
+    const firstCase = casesList[0];
+
+    setCaseProgress(prev => ({
+      ...prev,
+      reviewedCaseIds: prev.reviewedCaseIds.includes(firstCase.id)
+        ? prev.reviewedCaseIds
+        : [...prev.reviewedCaseIds, firstCase.id]
+    }));
+
+    setActiveCaseSession({
+      cases: casesList,
+      currentIndex: 0,
+      title
+    });
+  };
+
+  const handleUpdateCaseSelfRating = (caseId: number, rating: 'knew_it' | 'needs_review' | 'mastered' | null) => {
+    setCaseProgress(prev => {
+      const nextRatings = { ...prev.caseSelfRating };
+      if (rating === null) {
+        delete nextRatings[caseId];
+      } else {
+        nextRatings[caseId] = rating;
+      }
+      return {
+        ...prev,
+        caseSelfRating: nextRatings,
+        reviewedCaseIds: prev.reviewedCaseIds.includes(caseId)
+          ? prev.reviewedCaseIds
+          : [...prev.reviewedCaseIds, caseId]
+      };
+    });
+  };
+
+  const handleToggleCaseBookmark = (caseId: number) => {
+    setCaseProgress(prev => {
+      const exists = prev.bookmarkedCaseIds.includes(caseId);
+      return {
+        ...prev,
+        bookmarkedCaseIds: exists
+          ? prev.bookmarkedCaseIds.filter(id => id !== caseId)
+          : [...prev.bookmarkedCaseIds, caseId]
+      };
+    });
+  };
 
   // 3. Handlers for Starting Lessons
 
@@ -216,15 +348,23 @@ export default function App() {
 
     const xpForThis = isCorrect ? 10 + (newCombo > 2 ? 5 : 0) : 0;
 
-    const updatedCorrect = isCorrect 
+    const updatedCorrect = isCorrect && !activeSession.correctAnswers.includes(currentQ.id)
       ? [...activeSession.correctAnswers, currentQ.id] 
       : activeSession.correctAnswers;
-    const updatedIncorrect = !isCorrect 
+    const updatedIncorrect = !isCorrect && !activeSession.incorrectAnswers.includes(currentQ.id)
       ? [...activeSession.incorrectAnswers, currentQ.id] 
       : activeSession.incorrectAnswers;
 
+    // Repetition mastery rule:
+    // If the answer is incorrect, repeat this question at the end of the session queue
+    // until the user gets it correct!
+    const updatedQuestions = !isCorrect
+      ? [...activeSession.questions, currentQ]
+      : activeSession.questions;
+
     const updatedSession: QuizSession = {
       ...activeSession,
+      questions: updatedQuestions,
       correctAnswers: updatedCorrect,
       incorrectAnswers: updatedIncorrect,
       xpGained: activeSession.xpGained + xpForThis,
@@ -271,10 +411,10 @@ export default function App() {
     });
 
     // Advance to next question or complete lesson
-    if (currentQuestionIndex + 1 < activeSession.questions.length) {
+    if (currentQuestionIndex + 1 < updatedQuestions.length) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
-      // Lesson finished!
+      // Lesson finished! All questions in the queue (including repeats) are now mastered!
       if (activeSession.lessonNumber) {
         setProgress(prev => ({
           ...prev,
@@ -314,8 +454,11 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0A0C10] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 transition-colors duration-150">
       
+      {/* PWA Install Banner */}
+      <InstallAppBanner onOpenGuide={() => setIsInstallGuideOpen(true)} />
+
       {/* Top Navigation */}
       <Navbar
         currentTab={currentTab}
@@ -327,6 +470,7 @@ export default function App() {
         onQuickPractice={handleQuickPractice}
         onOpenGlossary={() => setIsGlossaryOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenInstallGuide={() => setIsInstallGuideOpen(true)}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
         showTranslationByDefault={showTranslationByDefault}
@@ -342,6 +486,11 @@ export default function App() {
             question={activeSession.questions[currentQuestionIndex]}
             questionIndex={currentQuestionIndex}
             totalQuestions={activeSession.totalQuestions}
+            completedCount={activeSession.correctAnswers.length}
+            isRepeat={
+              currentQuestionIndex >= activeSession.totalQuestions ||
+              activeSession.questions.slice(0, currentQuestionIndex).some(q => q.id === activeSession.questions[currentQuestionIndex]?.id)
+            }
             hearts={progress.hearts}
             infiniteHearts={progress.infiniteHearts}
             combo={currentCombo}
@@ -370,6 +519,40 @@ export default function App() {
                   setCurrentTab('bank');
                 }}
               />
+            )}
+
+            {currentTab === 'cases' && (
+              activeCaseSession ? (
+                <CaseReviewCard
+                  clinicalCase={activeCaseSession.cases[activeCaseSession.currentIndex]}
+                  sessionCases={activeCaseSession.cases}
+                  currentIndex={activeCaseSession.currentIndex}
+                  onNavigateIndex={(newIndex) => {
+                    const nextCase = activeCaseSession.cases[newIndex];
+                    if (nextCase) {
+                      setCaseProgress(prev => ({
+                        ...prev,
+                        reviewedCaseIds: prev.reviewedCaseIds.includes(nextCase.id)
+                          ? prev.reviewedCaseIds
+                          : [...prev.reviewedCaseIds, nextCase.id]
+                      }));
+                    }
+                    setActiveCaseSession(prev => prev ? { ...prev, currentIndex: newIndex } : null);
+                  }}
+                  caseProgress={caseProgress}
+                  onUpdateSelfRating={handleUpdateCaseSelfRating}
+                  onToggleBookmark={handleToggleCaseBookmark}
+                  onExit={() => setActiveCaseSession(null)}
+                  sessionTitle={activeCaseSession.title}
+                />
+              ) : (
+                <CaseTopicSelector
+                  caseProgress={caseProgress}
+                  onSelectTopic={handleSelectCaseTopic}
+                  onSelectCase={handleSelectSingleCase}
+                  onStartFilterSession={handleStartCustomCaseSession}
+                />
+              )
             )}
 
             {currentTab === 'bank' && (
@@ -450,6 +633,14 @@ export default function App() {
         setShowTranslationByDefault={setShowTranslationByDefault}
         onToggleInfiniteHearts={() => setProgress(prev => ({ ...prev, infiniteHearts: !prev.infiniteHearts }))}
         onResetProgress={handleResetProgress}
+        onOpenInstallGuide={() => setIsInstallGuideOpen(true)}
+      />
+
+      {/* Android & PWA Install Guide Modal */}
+      <InstallGuideModal
+        isOpen={isInstallGuideOpen}
+        onClose={() => setIsInstallGuideOpen(false)}
+        canDirectInstall={true}
       />
 
     </div>

@@ -6,7 +6,9 @@ import {
   Trophy, 
   Play, 
   Shuffle,
-  Sparkles
+  Sparkles,
+  Stethoscope,
+  Activity
 } from 'lucide-react';
 import { UserProgress } from '../types';
 import { topics } from '../data/topics';
@@ -40,18 +42,18 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6">
       
       {/* Top Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950/80 via-[#161A23] to-slate-900 border border-slate-800 text-white p-6 sm:p-8 mb-8 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-800 via-teal-900 to-slate-900 dark:from-emerald-950/80 dark:via-[#161A23] dark:to-slate-900 border border-emerald-700/40 dark:border-slate-800 text-white p-6 sm:p-8 mb-8 shadow-xl transition-all">
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="max-w-md">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-black tracking-wider uppercase text-emerald-400 mb-3">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Russian Medical MCQ Master</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/20 dark:bg-emerald-500/15 border border-emerald-400/30 text-xs font-black tracking-wider uppercase text-emerald-300 dark:text-emerald-400 mb-3">
+              <Activity className="w-3.5 h-3.5" />
+              <span>Surgical Board Mastery</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-white">
               Surgical Exam Quest
             </h1>
-            <p className="mt-1 text-slate-400 text-sm font-medium">
-              620 Official Russian Surgical Questions organized into 62 bite-sized Duolingo levels.
+            <p className="mt-1 text-emerald-100/80 dark:text-slate-400 text-sm font-medium">
+              620 Official Russian Surgical Questions organized into 62 bite-sized progressive levels.
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -61,7 +63,7 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
                   SoundEffects.playClick();
                   onStartQuickShuffle();
                 }}
-                className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center gap-2"
+                className="px-4 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-slate-950 font-black text-sm shadow-[0_0_20px_rgba(52,211,153,0.4)] transition-all flex items-center gap-2"
               >
                 <Shuffle className="w-4 h-4 text-slate-950" />
                 <span>Shuffle Practice (10 Qs)</span>
@@ -73,7 +75,7 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
                   SoundEffects.playClick();
                   onOpenExam();
                 }}
-                className="px-4 py-2.5 rounded-xl bg-[#0F1218] hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-sm shadow-sm active:scale-95 transition-all flex items-center gap-2"
+                className="px-4 py-2.5 rounded-xl bg-slate-900/80 dark:bg-[#0F1218] hover:bg-slate-800 border border-slate-700/80 text-slate-200 font-bold text-sm shadow-sm active:scale-95 transition-all flex items-center gap-2"
               >
                 <Trophy className="w-4 h-4 text-amber-400" />
                 <span>Simulate Exam</span>
@@ -82,35 +84,35 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
           </div>
 
           {/* Progress Card */}
-          <div className="w-full sm:w-auto min-w-[220px] p-4 rounded-2xl bg-[#0F1218] border border-slate-800 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+          <div className="w-full sm:w-auto min-w-[220px] p-4 rounded-2xl bg-slate-900/70 dark:bg-[#0F1218] border border-white/10 dark:border-slate-800 flex flex-col gap-2 shadow-lg backdrop-blur-xs">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-200 dark:text-slate-300">
               <span>Overall Completion</span>
               <span className="text-emerald-400">{Math.round((completedQuestionsCount / 620) * 100)}%</span>
             </div>
-            <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden">
+            <div className="w-full h-3 rounded-full bg-slate-800/90 dark:bg-slate-800 overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                className="h-full bg-gradient-to-r from-emerald-400 to-teal-300 dark:from-emerald-500 dark:to-teal-400 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                 style={{ width: `${Math.min(100, (completedQuestionsCount / 620) * 100)}%` }}
               />
             </div>
-            <div className="flex justify-between items-center text-xs text-slate-400 font-medium mt-1">
+            <div className="flex justify-between items-center text-xs text-slate-300 dark:text-slate-400 font-medium mt-1">
               <span>{completedQuestionsCount} / 620 Questions</span>
-              <span className="text-sky-400 font-bold">{progress.totalXp || progress.xp || 0} XP</span>
+              <span className="text-sky-300 dark:text-sky-400 font-bold">{progress.totalXp || progress.xp || 0} XP</span>
             </div>
           </div>
         </div>
 
-        {/* Mascot decoration */}
-        <div className="absolute -right-6 -bottom-6 text-8xl opacity-10 pointer-events-none select-none">
-          🦉
+        {/* Surgical Stethoscope decoration watermark (replaced owl) */}
+        <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none select-none text-emerald-400">
+          <Stethoscope className="w-44 h-44 -rotate-12" />
         </div>
       </div>
 
-      {/* Duolingo Winding Path */}
+      {/* Winding Learning Path */}
       <div className="relative py-4 flex flex-col items-center">
         
         {/* Continuous background path line */}
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-3 bg-slate-800 rounded-full -z-0" />
+        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-3 bg-slate-300 dark:bg-slate-800 rounded-full -z-0" />
 
         {Array.from({ length: totalLevels }).map((_, idx) => {
           const levelNum = idx + 1;
@@ -119,7 +121,7 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
           const isCurrent = levelNum === 1 || (progress.completedLessons || []).includes(levelNum - 1);
           const isLocked = !isCompleted && !isCurrent;
 
-          // Sinusoidal horizontal offset for the Duolingo winding road
+          // Sinusoidal horizontal offset for the winding road
           const offsets = [0, 45, 75, 45, 0, -45, -75, -45];
           const xOffset = offsets[idx % offsets.length];
 
@@ -132,26 +134,26 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
               {/* Topic Section Header Banner */}
               {isTopicHeader && (
                 <div className="my-6 z-10 w-full max-w-md">
-                  <div className={`p-4 rounded-2xl border shadow-xl flex items-center justify-between transition-all ${
+                  <div className={`p-4 rounded-2xl border shadow-lg flex items-center justify-between transition-all ${
                     isLocked 
-                      ? 'bg-[#0F1218]/90 border-slate-800 text-slate-500' 
-                      : 'bg-[#161A23] border-slate-700 text-white shadow-[0_0_20px_rgba(0,0,0,0.4)]'
+                      ? 'bg-slate-100 dark:bg-[#0F1218]/90 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500' 
+                      : 'bg-white dark:bg-[#161A23] border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_0_20px_rgba(0,0,0,0.4)]'
                   }`}>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl">
                         {topic.icon}
                       </div>
                       <div>
-                        <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                           Unit {topic.order} • Questions {topic.questionRange[0]}–{topic.questionRange[1]}
                         </div>
-                        <h3 className="font-extrabold text-sm sm:text-base leading-tight text-white">
+                        <h3 className="font-extrabold text-sm sm:text-base leading-tight text-slate-900 dark:text-white">
                           {topic.titleEn}
                         </h3>
-                        <p className="text-xs text-slate-400 line-clamp-1">{topic.titleRu}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{topic.titleRu}</p>
                       </div>
                     </div>
-                    <div className="text-xs font-black text-slate-500">
+                    <div className="text-xs font-black text-slate-400 dark:text-slate-500">
                       {topic.count} Qs
                     </div>
                   </div>
@@ -175,7 +177,7 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
                       ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.35)] hover:bg-amber-400'
                       : isCurrent
                       ? 'bg-emerald-500 text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:bg-emerald-400 scale-110 ring-4 ring-emerald-500/30'
-                      : 'bg-slate-800 text-slate-600 border border-slate-700 cursor-not-allowed'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-300 dark:border-slate-700 cursor-not-allowed'
                   }`}
                 >
                   {isCompleted ? (
@@ -183,7 +185,7 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
                   ) : isCurrent ? (
                     <Play className="w-6 h-6 fill-slate-950 ml-0.5" />
                   ) : (
-                    <Lock className="w-5 h-5 text-slate-600" />
+                    <Lock className="w-5 h-5 text-slate-400 dark:text-slate-600" />
                   )}
 
                   {/* Crown indicator for completed levels */}
@@ -203,7 +205,7 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
 
                 {/* Level Title Label */}
                 <div className="mt-1 text-center select-none">
-                  <span className={`text-[11px] font-extrabold ${isLocked ? 'text-slate-600' : 'text-slate-400'}`}>
+                  <span className={`text-[11px] font-extrabold ${isLocked ? 'text-slate-400 dark:text-slate-600' : 'text-slate-600 dark:text-slate-400'}`}>
                     Level {levelNum}
                   </span>
                 </div>
@@ -216,13 +218,14 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
         {/* Final Trophy */}
         <div className="my-10 z-10 flex flex-col items-center">
           <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 border-4 border-amber-400 flex items-center justify-center text-4xl shadow-[0_0_30px_rgba(245,158,11,0.4)]">
-            🏆
+            <Trophy className="w-10 h-10 text-slate-950" />
           </div>
-          <span className="mt-2 font-black text-white text-sm">Exam Master Trophy</span>
-          <span className="text-xs text-slate-400">Complete all 62 levels (620 questions)</span>
+          <span className="mt-2 font-black text-slate-900 dark:text-white text-sm">Surgical Exam Master</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">Complete all 62 levels (620 questions)</span>
         </div>
 
       </div>
     </div>
   );
 };
+
