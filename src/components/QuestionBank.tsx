@@ -8,7 +8,8 @@ import {
   Play, 
   ChevronDown, 
   ChevronUp, 
-  Languages
+  Languages,
+  Layers
 } from 'lucide-react';
 import { Question, UserProgress } from '../types';
 import { topics } from '../data/topics';
@@ -32,6 +33,7 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'all' | 'mistakes' | 'bookmarked' | 'unattempted' | 'completed'>('all');
   const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(null);
   const [showEnglishTranslations, setShowEnglishTranslations] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<'questions' | 'topics'>('questions');
 
   // Filter questions based on topic, query, and status
   const filteredQuestions = useMemo(() => {
@@ -97,7 +99,41 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
         </div>
 
         {/* Global actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* View Mode Toggle */}
+          <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-[#161A23] border border-slate-200 dark:border-slate-800">
+            <button
+              id="btn-bank-view-questions"
+              onClick={() => {
+                SoundEffects.playClick();
+                setViewMode('questions');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === 'questions'
+                  ? 'bg-white dark:bg-[#202736] text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Questions</span>
+            </button>
+            <button
+              id="btn-bank-view-topics"
+              onClick={() => {
+                SoundEffects.playClick();
+                setViewMode('topics');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === 'topics'
+                  ? 'bg-white dark:bg-[#202736] text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>16 Topics</span>
+            </button>
+          </div>
+
           <button
             id="btn-bank-toggle-trans"
             onClick={() => {
@@ -114,7 +150,7 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
             <span>{showEnglishTranslations ? 'Translations ON' : 'Translations OFF'}</span>
           </button>
 
-          {filteredQuestions.length > 0 && (
+          {viewMode === 'questions' && filteredQuestions.length > 0 && (
             <button
               id="btn-bank-practice-filtered"
               onClick={() => {
@@ -133,8 +169,126 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
         </div>
       </div>
 
-      {/* Controls Bar: Search & Status Filters */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-md mb-6 space-y-4">
+      {viewMode === 'topics' ? (
+        /* 16 Specialty Topics Overview Grid */
+        <div className="space-y-6">
+          <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-extrabold text-sm text-indigo-900 dark:text-indigo-200">
+                16 Medical Specialties & Topics Overview
+              </h3>
+              <p className="text-xs text-indigo-700/80 dark:text-indigo-300/80 font-medium">
+                Track mastery across all 16 Russian exam topics. Practice any topic or jump directly into its questions.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                SoundEffects.playClick();
+                setSelectedTopicId('all');
+                setViewMode('questions');
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-500 self-start sm:self-auto transition-all"
+            >
+              View All 620 Questions
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {topics.map((t) => {
+              const completedInTopic = Object.keys(progress.completedQuestions || {}).filter(qId => {
+                const num = Number(qId);
+                return num >= t.questionRange[0] && num <= t.questionRange[1];
+              }).length;
+              const percent = Math.min(100, Math.round((completedInTopic / t.count) * 100));
+
+              return (
+                <div
+                  key={t.id}
+                  id={`topic-card-${t.id}`}
+                  className="p-5 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-md hover:shadow-lg dark:hover:border-slate-700 hover:border-emerald-400/60 dark:hover:bg-[#1E2533] transition-all flex flex-col justify-between group"
+                >
+                  <div>
+                    {/* Top badges */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
+                        {t.icon}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md">
+                          Q {t.questionRange[0]}–{t.questionRange[1]}
+                        </span>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
+                          {t.count} questions
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Titles */}
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      {t.titleEn}
+                    </h3>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
+                      {t.titleRu}
+                    </p>
+
+                    {/* Progress Bar */}
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
+                        <span>Mastery</span>
+                        <span className="text-slate-700 dark:text-slate-300">{completedInTopic} / {t.count} ({percent}%)</span>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            percent === 100 
+                              ? 'bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]' 
+                              : 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                          }`}
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                    <button
+                      id={`btn-topic-practice-${t.id}`}
+                      onClick={() => {
+                        SoundEffects.playClick();
+                        const topicQuestions = questions.filter(q => q.topicId === t.id);
+                        onPracticeSubset(topicQuestions.slice(0, 10), `Practice: ${t.titleEn} (10 Qs)`);
+                      }}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-slate-950" />
+                      <span>Practice 10</span>
+                    </button>
+
+                    <button
+                      id={`btn-topic-browse-${t.id}`}
+                      onClick={() => {
+                        SoundEffects.playClick();
+                        setSelectedTopicId(t.id);
+                        setViewMode('questions');
+                      }}
+                      className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5 text-xs font-bold"
+                      title="Browse questions in topic"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      <span>Questions</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Questions List Mode (Search, filters, cards) */
+        <>
+          {/* Controls Bar: Search & Status Filters */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-md mb-6 space-y-4">
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Search Input */}
@@ -417,6 +571,8 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
             );
           })}
         </div>
+      )}
+        </>
       )}
 
     </div>

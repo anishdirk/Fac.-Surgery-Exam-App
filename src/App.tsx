@@ -6,7 +6,6 @@ import { Question, UserProgress, QuizSession, ClinicalCase, CaseProgress } from 
 import { Navbar } from './components/Navbar';
 import { DuolingoPath } from './components/DuolingoPath';
 import { QuizCard } from './components/QuizCard';
-import { TopicSelector } from './components/TopicSelector';
 import { QuestionBank } from './components/QuestionBank';
 import { ExamMode } from './components/ExamMode';
 import { CaseTopicSelector } from './components/CaseTopicSelector';
@@ -18,6 +17,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { InstallAppBanner } from './components/InstallAppBanner';
 import { InstallGuideModal } from './components/InstallGuideModal';
 import { SoundEffects } from './utils/audio';
+import { AppSection, McqTab, Part2Tab } from './constants/navigation';
 
 const STORAGE_KEY = 'duomed_ru_progress_v2';
 const CASES_STORAGE_KEY = 'duomed_ru_cases_v1';
@@ -123,8 +123,10 @@ export default function App() {
     }
   }, []);
 
-  // 2. Navigation State
-  const [currentTab, setCurrentTab] = useState<'learn' | 'topics' | 'cases' | 'bank' | 'exam' | 'mistakes'>('learn');
+  // 2. Two-Level Navigation State (MCQ and Part 2)
+  const [section, setSection] = useState<AppSection>('mcq');
+  const [mcqTab, setMcqTab] = useState<McqTab>('learn');
+  const [part2Tab, setPart2Tab] = useState<Part2Tab>('cases');
   const [activeSession, setActiveSession] = useState<QuizSession | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [currentCombo, setCurrentCombo] = useState<number>(0);
@@ -461,25 +463,37 @@ export default function App() {
 
       {/* Top Navigation */}
       <Navbar
-        currentTab={currentTab}
-        setCurrentTab={(tab) => {
+        section={section}
+        setSection={(newSec) => {
           setActiveSession(null);
-          setCurrentTab(tab);
+          setSection(newSec);
+          if (newSec === 'mcq') {
+            setMcqTab('learn');
+          } else {
+            setPart2Tab('home');
+          }
+        }}
+        mcqTab={mcqTab}
+        setMcqTab={(tab) => {
+          setActiveSession(null);
+          setMcqTab(tab);
+        }}
+        part2Tab={part2Tab}
+        setPart2Tab={(tab) => {
+          setActiveSession(null);
+          setPart2Tab(tab);
         }}
         progress={progress}
         onQuickPractice={handleQuickPractice}
         onOpenGlossary={() => setIsGlossaryOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenInstallGuide={() => setIsInstallGuideOpen(true)}
-        soundEnabled={soundEnabled}
-        setSoundEnabled={setSoundEnabled}
-        showTranslationByDefault={showTranslationByDefault}
-        setShowTranslationByDefault={setShowTranslationByDefault}
         mistakesCount={(progress.mistakes || []).length}
+        hideMobileBottomNav={Boolean(activeSession || activeCaseSession)}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-24 md:pb-12">
         {/* Active Quiz Session takes full focus */}
         {activeSession ? (
           <QuizCard
@@ -499,29 +513,57 @@ export default function App() {
             onOpenGlossary={() => setIsGlossaryOpen(true)}
             showTranslationByDefault={showTranslationByDefault}
           />
-        ) : (
-          /* Tab Navigation Views */
+        ) : section === 'mcq' ? (
+          /* MCQ Section Views */
           <>
-            {currentTab === 'learn' && (
+            {mcqTab === 'learn' && (
               <DuolingoPath
                 progress={progress}
                 onStartLesson={handleStartPathLevel}
                 onStartQuickShuffle={() => handleQuickPractice(10)}
-                onOpenExam={() => setCurrentTab('exam')}
+                onOpenExam={() => setMcqTab('exam')}
               />
             )}
 
-            {currentTab === 'topics' && (
-              <TopicSelector
+            {mcqTab === 'bank' && (
+              <QuestionBank
+                questions={allQuestions}
                 progress={progress}
-                onSelectTopic={handleSelectTopicPractice}
-                onBrowseTopic={() => {
-                  setCurrentTab('bank');
+                onPracticeSubset={handlePracticeSubset}
+                onToggleBookmark={handleToggleBookmark}
+              />
+            )}
+
+            {mcqTab === 'exam' && (
+              <ExamMode
+                allQuestions={allQuestions}
+                onExit={() => setMcqTab('learn')}
+                onRecordResults={(correct, total, xpGained) => {
+                  setProgress(prev => ({
+                    ...prev,
+                    totalXp: (prev.totalXp || prev.xp || 0) + xpGained,
+                    xp: (prev.totalXp || prev.xp || 0) + xpGained,
+                    streakDays: (prev.streakDays || 1) + 1,
+                    streak: (prev.streak || 1) + 1
+                  }));
                 }}
               />
             )}
 
-            {currentTab === 'cases' && (
+            {mcqTab === 'mistakes' && (
+              <MistakesReviewModal
+                mistakes={progress.mistakes || []}
+                allQuestions={allQuestions}
+                onStartReview={handlePracticeMistakes}
+                onClearMistakes={() => setProgress(prev => ({ ...prev, mistakes: [] }))}
+                onClose={() => setMcqTab('learn')}
+              />
+            )}
+          </>
+        ) : (
+          /* Part 2 Section Views */
+          <>
+            {part2Tab === 'cases' && (
               activeCaseSession ? (
                 <CaseReviewCard
                   clinicalCase={activeCaseSession.cases[activeCaseSession.currentIndex]}
@@ -553,41 +595,6 @@ export default function App() {
                   onStartFilterSession={handleStartCustomCaseSession}
                 />
               )
-            )}
-
-            {currentTab === 'bank' && (
-              <QuestionBank
-                questions={allQuestions}
-                progress={progress}
-                onPracticeSubset={handlePracticeSubset}
-                onToggleBookmark={handleToggleBookmark}
-              />
-            )}
-
-            {currentTab === 'exam' && (
-              <ExamMode
-                allQuestions={allQuestions}
-                onExit={() => setCurrentTab('learn')}
-                onRecordResults={(correct, total, xpGained) => {
-                  setProgress(prev => ({
-                    ...prev,
-                    totalXp: (prev.totalXp || prev.xp || 0) + xpGained,
-                    xp: (prev.totalXp || prev.xp || 0) + xpGained,
-                    streakDays: (prev.streakDays || 1) + 1,
-                    streak: (prev.streak || 1) + 1
-                  }));
-                }}
-              />
-            )}
-
-            {currentTab === 'mistakes' && (
-              <MistakesReviewModal
-                mistakes={progress.mistakes || []}
-                allQuestions={allQuestions}
-                onStartReview={handlePracticeMistakes}
-                onClearMistakes={() => setProgress(prev => ({ ...prev, mistakes: [] }))}
-                onClose={() => setCurrentTab('learn')}
-              />
             )}
           </>
         )}
