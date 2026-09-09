@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -15,15 +15,24 @@ import {
   Loader2,
   RefreshCw,
   XCircle,
-  MessageSquarePlus
+  MessageSquarePlus,
+  WifiOff,
+  Gauge,
+  AlertTriangle,
+  ShieldCheck,
+  RotateCcw
 } from 'lucide-react';
 import { 
   ClinicalCase, 
   CaseProgress, 
   CaseComparisonResult, 
-  CaseComparisonStatus 
+  CaseComparisonStatus,
+  ConfidenceLevel
 } from '../types';
 import { SoundEffects } from '../utils/audio';
+import { ErrorBoundary } from './ErrorBoundary';
+import { parseCaseComparisonResponse } from '../utils/caseComparisonParser';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 interface CaseReviewCardProps {
   clinicalCase: ClinicalCase;
@@ -32,6 +41,7 @@ interface CaseReviewCardProps {
   onNavigateIndex: (index: number) => void;
   caseProgress: CaseProgress;
   onUpdateSelfRating: (caseId: number, rating: 'knew_it' | 'needs_review' | 'mastered' | null) => void;
+  onUpdateCaseConfidence?: (caseId: number, confidence: ConfidenceLevel) => void;
   onToggleBookmark: (caseId: number) => void;
   onExit: () => void;
   sessionTitle?: string;
@@ -50,6 +60,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   onNavigateIndex,
   caseProgress,
   onUpdateSelfRating,
+  onUpdateCaseConfidence,
   onToggleBookmark,
   onExit,
   sessionTitle = 'Clinical Cases'
@@ -64,7 +75,11 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   const [isComparing, setIsComparing] = useState<boolean>(false);
   const [comparisonError, setComparisonError] = useState<string | null>(null);
   const [comparisonResult, setComparisonResult] = useState<CaseComparisonResult | null>(null);
+  const [confidence, setConfidence] = useState<ConfidenceLevel | null>(
+    caseProgress.caseConfidence?.[clinicalCase.id] || null
+  );
 
+  const isOnline = useOnlineStatus();
   const recognitionRef = useRef<any>(null);
   const baseTextRef = useRef<string>('');
 
@@ -88,8 +103,15 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
     setComparisonError(null);
     setComparisonResult(null);
     setRevealedQuestions({});
+    setConfidence(caseProgress.caseConfidence?.[clinicalCase.id] || null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [clinicalCase.id]);
+  }, [clinicalCase.id, caseProgress.caseConfidence]);
+
+  const handleSelectConfidence = (level: ConfidenceLevel) => {
+    SoundEffects.playClick();
+    setConfidence(level);
+    onUpdateCaseConfidence?.(clinicalCase.id, level);
+  };
 
   // Clean up speech recognition on unmount
   useEffect(() => {
@@ -248,6 +270,11 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   const handleCompare = async () => {
     if (!userAnswer.trim() || isComparing) return;
 
+    if (!isOnline || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      setComparisonError('You are currently offline. AI-graded case comparison requires an active internet connection to evaluate answers with Gemini. You can still reveal all model answers below and self-rate your diagnosis.');
+      return;
+    }
+
     // Stop speech recognition if listening
     if (recognitionRef.current) {
       try {
@@ -263,7 +290,19 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
     SoundEffects.playClick();
 
     try {
+      let sessionId = '';
+      try {
+        sessionId = sessionStorage.getItem('duomed_client_session_id') || '';
+        if (!sessionId) {
+          sessionId = 'sess_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+          sessionStorage.setItem('duomed_client_session_id', sessionId);
+        }
+      } catch {
+        sessionId = 'sess_local';
+      }
+
       const payload = {
+        caseId: clinicalCase.id,
         stem: clinicalCase.stem,
         questions: clinicalCase.questions.map((q, idx) => ({
           id: q.id || `q${idx + 1}`,
@@ -278,7 +317,10 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
 
       const response = await fetch('/api/compare-case', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-session-id': sessionId
+        },
         body: JSON.stringify(payload)
       });
 
@@ -287,7 +329,9 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
         throw new Error(errData.error || `Server returned ${response.status}`);
       }
 
-      const data: CaseComparisonResult = await response.json();
+      const rawData = await response.json();
+      const expectedIds = clinicalCase.questions.map((q, idx) => q.id || `q${idx + 1}`);
+      const data: CaseComparisonResult = parseCaseComparisonResponse(rawData, expectedIds);
       setComparisonResult(data);
       SoundEffects.playCorrect();
 
@@ -324,6 +368,20 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   const currentRating = caseProgress.caseSelfRating?.[clinicalCase.id];
   const isKnewItOrMastered = currentRating === 'knew_it' || currentRating === 'mastered';
   const isBookmarked = (caseProgress.bookmarkedCaseIds || []).includes(clinicalCase.id);
+
+  // Successive relearning queue stats for clinical cases
+  const uniqueSessionCaseIds = useMemo(() => {
+    return Array.from(new Set(sessionCases.map(c => c.id)));
+  }, [sessionCases]);
+
+  const masteredCasesCount = useMemo(() => {
+    return uniqueSessionCaseIds.filter(id => {
+      const r = caseProgress.caseSelfRating?.[id];
+      return r === 'knew_it' || r === 'mastered';
+    }).length;
+  }, [uniqueSessionCaseIds, caseProgress.caseSelfRating]);
+
+  const retryCasesCount = uniqueSessionCaseIds.length - masteredCasesCount;
 
   // Status Badge Component
   const renderStatusBadge = (status: CaseComparisonStatus) => {
@@ -419,11 +477,29 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mb-6 overflow-hidden">
+      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mb-3 overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300"
           style={{ width: `${Math.round(((currentIndex + 1) / sessionCases.length) * 100)}%` }}
         />
+      </div>
+
+      {/* Successive Relearning Queue Indicator (Higham et al., Rawson & Dunlosky) */}
+      <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-6 px-1">
+        <span className="flex items-center gap-1.5">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+          <span>{masteredCasesCount} of {uniqueSessionCaseIds.length} mastered this session</span>
+        </span>
+        {retryCasesCount > 0 ? (
+          <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-extrabold bg-amber-500/10 dark:bg-amber-500/20 px-2.5 py-0.5 rounded-lg border border-amber-500/30">
+            <RotateCcw className="w-3 h-3" />
+            <span>{retryCasesCount} queued for retry</span>
+          </span>
+        ) : (
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+            ✓ All cases mastered this session
+          </span>
+        )}
       </div>
 
       {/* Main Case Card */}
@@ -547,6 +623,17 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
             )}
           </div>
 
+          {/* Offline Notice for AI Comparison */}
+          {!isOnline && (
+            <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2.5 animate-in fade-in duration-200">
+              <WifiOff className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <span className="font-bold">Offline Notice: </span>
+                <span>AI diagnostic grading requires an internet connection. You can still reveal the model answers below and self-rate your answers offline.</span>
+              </div>
+            </div>
+          )}
+
           {/* Error Message if API Call fails */}
           {comparisonError && (
             <div className="mt-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 text-xs text-rose-800 dark:text-rose-300 flex items-start justify-between gap-3">
@@ -588,15 +675,21 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
               <button
                 id="btn-compare-case-answer"
                 type="button"
-                disabled={!userAnswer.trim() || isComparing}
+                disabled={!userAnswer.trim() || isComparing || !isOnline}
                 onClick={handleCompare}
+                title={!isOnline ? "AI comparison is unavailable offline" : undefined}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all border shadow-sm ${
-                  !userAnswer.trim() || isComparing
-                    ? 'opacity-50 cursor-not-allowed bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-300 dark:border-slate-700'
+                  !userAnswer.trim() || isComparing || !isOnline
+                    ? 'opacity-60 cursor-not-allowed bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'
                     : 'bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
                 }`}
               >
-                {isComparing ? (
+                {!isOnline ? (
+                  <>
+                    <WifiOff className="w-3.5 h-3.5 text-amber-500" />
+                    <span>AI Offline (Internet Required)</span>
+                  </>
+                ) : isComparing ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Analyzing with Gemini...</span>
@@ -615,32 +708,93 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
 
         {/* AI Comparison Overall Summary Banner (if evaluated) */}
         {comparisonResult && (
-          <div className="mb-6 p-5 rounded-2xl bg-indigo-50/70 dark:bg-[#131826] border border-indigo-200 dark:border-indigo-500/40 shadow-md animate-in fade-in duration-300">
-            <div className="flex items-center justify-between gap-3 mb-2.5">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <h4 className="text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300">
-                  AI Clinical Evaluation & Synthesis
-                </h4>
+          <ErrorBoundary
+            fallbackTitle="AI Comparison Display Error"
+            fallbackMessage="An unexpected error occurred while displaying the AI analysis. You can reset it and review the authoritative model answer directly."
+            resetButtonText="Reset AI Comparison"
+            onReset={() => setComparisonResult(null)}
+          >
+            <div className="mb-6 p-5 rounded-2xl bg-indigo-50/70 dark:bg-[#131826] border border-indigo-200 dark:border-indigo-500/40 shadow-md animate-in fade-in duration-300">
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <h4 className="text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300">
+                    AI Clinical Evaluation & Synthesis
+                  </h4>
+                </div>
+
+                {/* Status tally pill */}
+                <div className="flex items-center gap-1.5 text-xs font-bold">
+                  {comparisonResult.perQuestion && (
+                    <span className="px-2 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/60">
+                      {comparisonResult.perQuestion.filter(p => p.status === 'correct').length}/{comparisonResult.perQuestion.length} Correct
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Status tally pill */}
-              <div className="flex items-center gap-1.5 text-xs font-bold">
-                {comparisonResult.perQuestion && (
-                  <span className="px-2 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/60">
-                    {comparisonResult.perQuestion.filter(p => p.status === 'correct').length}/{comparisonResult.perQuestion.length} Correct
-                  </span>
-                )}
-              </div>
+              <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+                {comparisonResult.overallSummary}
+              </p>
             </div>
-
-            <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-              {comparisonResult.overallSummary}
-            </p>
-          </div>
+          </ErrorBoundary>
         )}
 
         {/* Sub-Questions Header & Global Controls */}
+        {/* Diagnostic Confidence Check Before Revealing Answers */}
+        <div className="mb-6 p-4 rounded-2xl bg-indigo-50/60 dark:bg-[#121622] border border-indigo-200/80 dark:border-indigo-800/60 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300">
+                <Gauge className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span>Diagnostic Confidence Check (Before Revealing Answers)</span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                How confident are you in your clinical formulation before inspecting model answers?
+              </p>
+            </div>
+
+            <div className="inline-flex items-center gap-2">
+              <button
+                type="button"
+                id="btn-case-confidence-low"
+                onClick={() => handleSelectConfidence('low')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                  confidence === 'low'
+                    ? 'bg-slate-700 text-white border-slate-600 shadow-sm'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                Low (Unsure)
+              </button>
+              <button
+                type="button"
+                id="btn-case-confidence-medium"
+                onClick={() => handleSelectConfidence('medium')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                  confidence === 'medium'
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                    : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60'
+                }`}
+              >
+                Medium (Likely)
+              </button>
+              <button
+                type="button"
+                id="btn-case-confidence-high"
+                onClick={() => handleSelectConfidence('high')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all border ${
+                  confidence === 'high'
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
+                }`}
+              >
+                High (Certain)
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between gap-3 mb-4 pt-2">
           <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
             Clinical Questions ({totalQuestions})
@@ -724,15 +878,21 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
 
                 {/* AI Specific Question Feedback Callout (if evaluated) */}
                 {questionFeedback && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80">
-                    <div className="p-2.5 rounded-xl bg-white dark:bg-[#0D1017] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-start gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold text-indigo-900 dark:text-indigo-300">AI Feedback: </span>
-                        <span>{questionFeedback.feedback}</span>
+                  <ErrorBoundary
+                    fallbackTitle="Feedback Error"
+                    fallbackMessage="Could not display AI feedback for this question."
+                    resetButtonText="Dismiss"
+                  >
+                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80">
+                      <div className="p-2.5 rounded-xl bg-white dark:bg-[#0D1017] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-start gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-indigo-900 dark:text-indigo-300">AI Feedback: </span>
+                          <span>{questionFeedback.feedback}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </ErrorBoundary>
                 )}
 
                 {/* Model Answer Drawer */}
@@ -798,6 +958,16 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Clinical Danger Signal Warning */}
+          {confidence === 'high' && currentRating === 'needs_review' && (
+            <div className="mt-3 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2.5 font-bold animate-pulse">
+              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+              <span>
+                Clinical Danger Signal: You expressed High Certainty, but self-assessed this case as Needs Review. This high-confidence misconception will be prioritized for spaced relearning.
+              </span>
+            </div>
+          )}
         </div>
 
       </div>

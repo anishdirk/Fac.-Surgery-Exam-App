@@ -3,8 +3,27 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import {
+  CaseEvaluationCache,
+  CaseSubmissionRateLimiter,
+  DEFAULT_CACHE_TTL_MS,
+  DEFAULT_COOLDOWN_SECONDS,
+  generateCaseCacheKey
+} from "./src/utils/caseEvaluationCache";
 
 dotenv.config();
+
+// Global in-memory cache with 24-hour TTL and per-user cooldown rate limiter
+const cacheTtlMs = process.env.CASE_CACHE_TTL_MS
+  ? parseInt(process.env.CASE_CACHE_TTL_MS, 10)
+  : DEFAULT_CACHE_TTL_MS;
+
+const cooldownSeconds = process.env.CASE_COMPARE_COOLDOWN_SECONDS
+  ? parseInt(process.env.CASE_COMPARE_COOLDOWN_SECONDS, 10)
+  : DEFAULT_COOLDOWN_SECONDS;
+
+const caseEvaluationCache = new CaseEvaluationCache(cacheTtlMs);
+const caseRateLimiter = new CaseSubmissionRateLimiter(cooldownSeconds);
 
 async function startServer() {
   const app = express();
@@ -14,13 +33,17 @@ async function startServer() {
 
   // Health check
   app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok" });
+    res.json({ 
+      status: "ok",
+      cacheSize: caseEvaluationCache.size(),
+      cooldownSeconds
+    });
   });
 
   // Clinical Case Answer Comparison via Gemini API
   app.post("/api/compare-case", async (req, res) => {
     try {
-      const { stem, stemEn, questions, answers, userAnswer } = req.body;
+      const { caseId, stem, stemEn, questions, answers, userAnswer } = req.body;
 
       if (!userAnswer || typeof userAnswer !== "string" || !userAnswer.trim()) {
         return res.status(400).json({ error: "User answer text is required." });
@@ -30,12 +53,48 @@ async function startServer() {
         return res.status(400).json({ error: "Case questions are required." });
       }
 
+      const caseStem = stem || stemEn || "N/A";
+      const resolvedCaseId = caseId ?? (caseStem.length > 5 ? caseStem.slice(0, 48) : "default_case");
+      const userSessionId =
+        (req.headers["x-session-id"] as string) ||
+        (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+        req.socket.remoteAddress ||
+        "anonymous_user";
+
+      // 1. In-memory Cache check (24h TTL)
+      const cachedResult = caseEvaluationCache.get(resolvedCaseId, userAnswer);
+      if (cachedResult) {
+        const hash = generateCaseCacheKey(resolvedCaseId, userAnswer).slice(0, 8);
+        console.log(`[CACHE HIT] Serving cached evaluation for caseId="${resolvedCaseId}" (hash: ${hash})`);
+        return res.json({
+          ...cachedResult,
+          _fromCache: true
+        });
+      }
+
+      // 2. Cooldown check (default 10s per user/case)
+      const cooldownCheck = caseRateLimiter.check(userSessionId, resolvedCaseId, cooldownSeconds);
+      if (!cooldownCheck.allowed) {
+        console.log(`[RATE LIMIT] Cooldown active for user="${userSessionId}" on case="${resolvedCaseId}". Remaining wait: ${cooldownCheck.waitSeconds}s.`);
+        return res.status(429).json({
+          error: cooldownCheck.message || "Please wait before resubmitting an answer for this case.",
+          retryAfter: cooldownCheck.waitSeconds
+        });
+      }
+
+      // 3. Verify Gemini API key is configured before issuing model request
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         return res.status(500).json({
           error: "GEMINI_API_KEY is not configured on the server. Please check the Secrets settings."
         });
       }
+
+      const hash = generateCaseCacheKey(resolvedCaseId, userAnswer).slice(0, 8);
+      console.log(`[GEMINI API CALL] Requesting Gemini evaluation for caseId="${resolvedCaseId}" (hash: ${hash})`);
+
+      // Record submission timestamp for user cooldown
+      caseRateLimiter.record(userSessionId, resolvedCaseId);
 
       const ai = new GoogleGenAI({
         apiKey,
@@ -45,8 +104,6 @@ async function startServer() {
           },
         },
       });
-
-      const caseStem = stem || stemEn || "N/A";
 
       const formattedQuestions = questions
         .map((q: any, idx: number) => {
@@ -129,6 +186,9 @@ Return STRICT JSON matching the schema.`;
 
       const responseText = response.text || "{}";
       const parsedResult = JSON.parse(responseText);
+
+      // Store in 24h cache for subsequent submissions of the identical answer
+      caseEvaluationCache.set(resolvedCaseId, userAnswer, parsedResult);
 
       return res.json(parsedResult);
     } catch (err: any) {

@@ -10,9 +10,12 @@ import {
   ArrowRight, 
   Sparkles, 
   RotateCcw,
-  BookOpen
+  BookOpen,
+  Gauge,
+  AlertTriangle,
+  ShieldCheck
 } from 'lucide-react';
-import { Question } from '../types';
+import { Question, ConfidenceLevel } from '../types';
 import { SoundEffects } from '../utils/audio';
 
 interface QuizCardProps {
@@ -24,10 +27,12 @@ interface QuizCardProps {
   hearts: number;
   infiniteHearts: boolean;
   combo: number;
-  onAnswer: (selectedKey: string, isCorrect: boolean) => void;
+  onAnswer: (selectedKey: string, isCorrect: boolean, confidence: ConfidenceLevel) => void;
   onExit: () => void;
   onOpenGlossary: () => void;
   showTranslationByDefault: boolean;
+  masteredInSession?: number;
+  queuedForRetry?: number;
 }
 
 export const QuizCard: React.FC<QuizCardProps> = ({
@@ -42,9 +47,12 @@ export const QuizCard: React.FC<QuizCardProps> = ({
   onAnswer,
   onExit,
   onOpenGlossary,
-  showTranslationByDefault
+  showTranslationByDefault,
+  masteredInSession,
+  queuedForRetry
 }) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [confidence, setConfidence] = useState<ConfidenceLevel | null>(null);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [showTranslation, setShowTranslation] = useState<boolean>(showTranslationByDefault);
 
@@ -56,6 +64,7 @@ export const QuizCard: React.FC<QuizCardProps> = ({
   // Reset state when new question loads
   useEffect(() => {
     setSelectedKey(null);
+    setConfidence(null);
     setIsSubmitted(false);
   }, [question.id]);
 
@@ -68,6 +77,25 @@ export const QuizCard: React.FC<QuizCardProps> = ({
           handleContinue();
         }
         return;
+      }
+
+      // If an option is selected, allow confidence shortcuts (1, 2, 3 or L, M, H)
+      if (selectedKey) {
+        if (e.key === 'l' || e.key === 'L') {
+          e.preventDefault();
+          handleSubmit('low');
+          return;
+        }
+        if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          handleSubmit('medium');
+          return;
+        }
+        if (e.key === 'h' || e.key === 'H') {
+          e.preventDefault();
+          handleSubmit('high');
+          return;
+        }
       }
 
       const keyMap: Record<string, string> = {
@@ -88,7 +116,7 @@ export const QuizCard: React.FC<QuizCardProps> = ({
         'E': 'д',
       };
 
-      if (keyMap[e.key]) {
+      if (!selectedKey && keyMap[e.key]) {
         const targetOption = question.options.find(o => o.key.toLowerCase() === keyMap[e.key]);
         if (targetOption) {
           SoundEffects.playClick();
@@ -96,17 +124,18 @@ export const QuizCard: React.FC<QuizCardProps> = ({
         }
       } else if (e.key === 'Enter' && selectedKey) {
         e.preventDefault();
-        handleSubmit();
+        handleSubmit(confidence || 'medium');
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSubmitted, selectedKey, question]);
+  }, [isSubmitted, selectedKey, confidence, question]);
 
-  const handleSubmit = () => {
+  const handleSubmit = (chosenConfidence: ConfidenceLevel = 'medium') => {
     if (!selectedKey || isSubmitted) return;
 
+    setConfidence(chosenConfidence);
     const isCorrect = selectedKey.toLowerCase() === question.correctKey.toLowerCase();
     setIsSubmitted(true);
 
@@ -120,7 +149,7 @@ export const QuizCard: React.FC<QuizCardProps> = ({
   const handleContinue = () => {
     if (!selectedKey) return;
     const isCorrect = selectedKey.toLowerCase() === question.correctKey.toLowerCase();
-    onAnswer(selectedKey, isCorrect);
+    onAnswer(selectedKey, isCorrect, confidence || 'medium');
   };
 
   const isCorrectChoice = isSubmitted && selectedKey?.toLowerCase() === question.correctKey.toLowerCase();
@@ -202,6 +231,26 @@ export const QuizCard: React.FC<QuizCardProps> = ({
           </button>
 
         </div>
+
+        {/* Successive Relearning Queue Status (Higham et al., Rawson & Dunlosky) */}
+        {(masteredInSession !== undefined || queuedForRetry !== undefined) && (
+          <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 px-1">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              <span>{masteredInSession ?? 0} of {totalQuestions} mastered this session</span>
+            </span>
+            {(queuedForRetry ?? 0) > 0 ? (
+              <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-extrabold bg-amber-500/10 dark:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                <RotateCcw className="w-3 h-3" />
+                <span>{queuedForRetry} queued for retry</span>
+              </span>
+            ) : (
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                ✓ All items mastered this session
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Repeat Question Badge */}
         {isRepeat && (
@@ -324,21 +373,65 @@ export const QuizCard: React.FC<QuizCardProps> = ({
         
         {/* State 1: Before Submission */}
         {!isSubmitted ? (
-          <div className="flex items-center justify-between gap-4">
-            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
-              Press <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded font-bold text-slate-700 dark:text-slate-300">1-5</kbd> to select, <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded font-bold text-slate-700 dark:text-slate-300">Enter</kbd> to check
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex-1">
+              {selectedKey ? (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Gauge className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Rate Confidence Before Reveal:</span>
+                  </span>
+                  <div className="inline-flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      id="btn-confidence-low"
+                      onClick={() => handleSubmit('low')}
+                      className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 flex items-center gap-1 shadow-xs"
+                      title="Shortcut: L"
+                    >
+                      <span>Low (Guess)</span>
+                      <kbd className="text-[10px] text-slate-400 font-mono hidden sm:inline">L</kbd>
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-confidence-medium"
+                      onClick={() => handleSubmit('medium')}
+                      className="px-3 py-1.5 rounded-xl border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-bold transition-all active:scale-95 flex items-center gap-1 shadow-xs"
+                      title="Shortcut: M"
+                    >
+                      <span>Medium</span>
+                      <kbd className="text-[10px] text-blue-400 font-mono hidden sm:inline">M</kbd>
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-confidence-high"
+                      onClick={() => handleSubmit('high')}
+                      className="px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold transition-all active:scale-95 flex items-center gap-1 shadow-xs"
+                      title="Shortcut: H"
+                    >
+                      <span>High (Sure)</span>
+                      <kbd className="text-[10px] text-emerald-500 font-mono hidden sm:inline">H</kbd>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
+                  Press <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded font-bold text-slate-700 dark:text-slate-300">1-5</kbd> to select, then pick confidence to reveal
+                </div>
+              )}
             </div>
+
             <button
               id="btn-quiz-check"
               disabled={!selectedKey}
-              onClick={handleSubmit}
-              className={`w-full sm:w-auto min-w-[180px] px-8 py-3.5 rounded-2xl font-black text-sm tracking-wide uppercase transition-all duration-150 active:scale-95 ${
+              onClick={() => handleSubmit(confidence || 'medium')}
+              className={`w-full sm:w-auto min-w-[150px] px-6 py-3.5 rounded-2xl font-black text-sm tracking-wide uppercase transition-all duration-150 active:scale-95 ${
                 selectedKey
                   ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.35)] cursor-pointer'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-700 cursor-not-allowed'
               }`}
             >
-              Check Answer
+              Reveal Answer
             </button>
           </div>
         ) : isCorrectChoice ? (
@@ -349,10 +442,21 @@ export const QuizCard: React.FC<QuizCardProps> = ({
                 <CheckCircle2 className="w-7 h-7 stroke-[3]" />
               </div>
               <div>
-                <h4 className="text-lg font-black text-emerald-700 dark:text-emerald-400 leading-tight">
-                  Excellent! Правильно!
-                </h4>
-                <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-lg font-black text-emerald-700 dark:text-emerald-400 leading-tight">
+                    Excellent! Правильно!
+                  </h4>
+                  {confidence === 'high' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 text-[10px] font-black uppercase tracking-wider">
+                      <ShieldCheck className="w-3 h-3" /> Well Calibrated
+                    </span>
+                  ) : confidence === 'low' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-800 dark:text-amber-200 text-[10px] font-black uppercase tracking-wider">
+                      <Sparkles className="w-3 h-3" /> Lucky Guess (Reinforcing)
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300 mt-0.5">
                   +10 XP {combo > 1 ? `• 🔥 Combo x${combo}` : ''}
                 </p>
                 {(question.explanationEn || question.explanation) && (
@@ -380,10 +484,28 @@ export const QuizCard: React.FC<QuizCardProps> = ({
                 <XCircle className="w-7 h-7 stroke-[3]" />
               </div>
               <div>
-                <h4 className="text-lg font-black text-rose-600 dark:text-rose-400 leading-tight">
-                  Correct Answer: ({question.correctKey.toUpperCase()})
-                </h4>
-                <p className="text-sm font-bold text-rose-800 dark:text-rose-200 mt-0.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-lg font-black text-rose-600 dark:text-rose-400 leading-tight">
+                    Correct Answer: ({question.correctKey.toUpperCase()})
+                  </h4>
+                  {confidence === 'high' ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-rose-600 text-white text-[11px] font-black uppercase tracking-wider animate-pulse">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Clinical Danger Signal
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-200 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 text-[10px] font-bold">
+                      Confidence: {confidence || 'medium'}
+                    </span>
+                  )}
+                </div>
+
+                {confidence === 'high' && (
+                  <p className="text-xs font-black text-rose-600 dark:text-rose-300 mt-1 bg-rose-500/15 px-2.5 py-1 rounded-lg border border-rose-500/30">
+                    High certainty on a wrong diagnosis. Flagged as highest priority for spaced review!
+                  </p>
+                )}
+
+                <p className="text-sm font-bold text-rose-800 dark:text-rose-200 mt-1">
                   {correctOption?.textRu}
                 </p>
                 {correctOption?.textEn && (

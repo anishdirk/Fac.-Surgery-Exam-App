@@ -32,7 +32,25 @@ export interface Topic {
   range?: [number, number];
 }
 
+export type ConfidenceLevel = 'low' | 'medium' | 'high';
+
+export interface SpacedRepetitionItem {
+  itemId: number;
+  consecutiveCorrect: number; // consecutive-correct count (1, 2, 3...)
+  nextReviewDate: string; // ISO 'YYYY-MM-DD'
+  currentInterval: number; // in days: 1, 3, 7, 14, 28...
+  lastReviewed?: number; // Epoch timestamp ms
+  confidence?: ConfidenceLevel;
+  // Backward compatibility aliases:
+  questionId?: number;
+  interval?: number;
+  repetitions?: number;
+  dueDate?: string;
+  easeFactor?: number;
+}
+
 export interface UserProgress {
+  schemaVersion?: number;
   hearts: number;
   maxHearts: number;
   totalXp: number;
@@ -53,7 +71,16 @@ export interface UserProgress {
     selectedKey: string;
     isCorrect: boolean;
     timestamp: number;
+    confidence?: 'low' | 'medium' | 'high';
   }>;
+  attemptHistory?: Array<{
+    questionId: number;
+    topicId: string;
+    isCorrect: boolean;
+    timestamp: number;
+    confidence?: 'low' | 'medium' | 'high';
+  }>;
+  spacedRepetition?: Record<number, SpacedRepetitionItem>;
 }
 
 export interface QuizSession {
@@ -99,9 +126,21 @@ export interface ClinicalCase {
 // Separate progress tracking — self-assessed, not right/wrong,
 // so it never touches hearts/XP/mistakes from the MCQ system.
 export interface CaseProgress {
+  schemaVersion?: number;
   reviewedCaseIds: number[];
   caseSelfRating: Record<number, 'knew_it' | 'needs_review' | 'mastered'>;
   bookmarkedCaseIds: number[];
+  caseSpacedRepetition?: Record<number, SpacedRepetitionItem>;
+  casePretests?: Record<number, { text: string; timestamp: number }>;
+  caseElaborations?: Record<number, { text: string; timestamp: number }>;
+  caseConfidence?: Record<number, ConfidenceLevel>;
+  caseAttempts?: Array<{
+    caseId: number;
+    confidence: ConfidenceLevel;
+    rating: 'knew_it' | 'needs_review' | 'mastered';
+    isCorrect?: boolean;
+    timestamp: number;
+  }>;
 }
 
 export type CaseComparisonStatus = 'correct' | 'partial' | 'missing' | 'incorrect';

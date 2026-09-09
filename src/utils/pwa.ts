@@ -1,4 +1,5 @@
 // PWA Installation & Service Worker Manager
+import { registerSW } from 'virtual:pwa-register';
 
 export interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -54,27 +55,42 @@ export function initPWA() {
 
 export function registerServiceWorker() {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((reg) => {
-          // Check for SW updates
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New update available
-                  console.log('DuoMed PWA update ready');
-                }
-              });
-            }
-          });
-        })
-        .catch((err) => {
-          console.warn('Service Worker registration failed:', err);
-        });
-    });
+    if (import.meta.env.DEV) {
+      // In development mode, unregister any previously registered service worker
+      // to avoid WebSocket HMR interception or stale cache conflicts
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      }).catch(() => {});
+      return;
+    }
+
+    try {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+
+      const updateSW = registerSW({
+        immediate: true,
+        onNeedRefresh() {
+          console.log('DuoMed PWA update ready');
+          updateSW(true);
+        },
+        onOfflineReady() {
+          console.log('DuoMed PWA ready for offline surgical exam practice');
+        },
+        onRegisterError(error: any) {
+          console.warn('Service Worker registration failed:', error);
+        }
+      });
+    } catch (err) {
+      console.warn('registerSW execution failed:', err);
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Stethoscope, 
   Search, 
@@ -9,12 +9,17 @@ import {
   Play, 
   Sparkles, 
   Filter,
-  ArrowRight
+  ArrowRight,
+  Clock,
+  Calendar,
+  Shuffle
 } from 'lucide-react';
 import { ClinicalCase, CaseProgress } from '../types';
 import { topics } from '../data/topics';
 import { allCases } from '../data/cases';
 import { SoundEffects } from '../utils/audio';
+import { formatDateKey, isSrsDue, getSrsStatusInfo } from '../utils/spacedRepetition';
+import { interleaveCases } from '../utils/interleavedPractice';
 
 interface CaseTopicSelectorProps {
   caseProgress: CaseProgress;
@@ -30,13 +35,28 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
   onStartFilterSession
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'needs_review' | 'mastered' | 'bookmarked'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'due' | 'needs_review' | 'mastered' | 'bookmarked'>('all');
+  const todayKey = useMemo(() => formatDateKey(), []);
 
   const totalCasesCount = allCases.length;
   const masteredCount = Object.values(caseProgress.caseSelfRating || {}).filter(r => r === 'knew_it' || r === 'mastered').length;
   const needsReviewCount = Object.values(caseProgress.caseSelfRating || {}).filter(r => r === 'needs_review').length;
   const bookmarkedCount = (caseProgress.bookmarkedCaseIds || []).length;
   const reviewedCount = (caseProgress.reviewedCaseIds || []).length;
+
+  // Identify cases due for review via per-case SRS schedule
+  const dueCaseIds = useMemo(() => {
+    return allCases.filter(c => {
+      const srs = caseProgress.caseSpacedRepetition?.[c.id];
+      if (srs) {
+        return isSrsDue(srs, todayKey);
+      }
+      return caseProgress.caseSelfRating?.[c.id] === 'needs_review';
+    }).map(c => c.id);
+  }, [caseProgress.caseSpacedRepetition, caseProgress.caseSelfRating, todayKey]);
+
+  const dueCasesCount = dueCaseIds.length;
+  const dueCases = useMemo(() => allCases.filter(c => dueCaseIds.includes(c.id)), [dueCaseIds]);
 
   // Filter cases for search
   const filteredCases = allCases.filter(c => {
@@ -50,6 +70,9 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
 
     if (!matchesSearch) return false;
 
+    if (activeFilter === 'due') {
+      return dueCaseIds.includes(c.id);
+    }
     if (activeFilter === 'mastered') {
       const rating = caseProgress.caseSelfRating?.[c.id];
       return rating === 'knew_it' || rating === 'mastered';
@@ -82,22 +105,73 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
             </p>
           </div>
 
-          <button
-            id="btn-practice-all-cases"
-            onClick={() => {
-              SoundEffects.playClick();
-              onStartFilterSession(allCases, 'All 78 Clinical Cases');
-            }}
-            className="self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all"
-          >
-            <Play className="w-4 h-4 fill-slate-950" />
-            <span>Study All Cases</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {dueCasesCount > 0 && (
+              <button
+                id="btn-practice-due-cases"
+                onClick={() => {
+                  SoundEffects.playClick();
+                  onStartFilterSession(dueCases, `Due Clinical Cases (${dueCasesCount})`);
+                }}
+                className="self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white font-black text-sm shadow-[0_0_20px_rgba(244,63,94,0.35)] active:scale-95 transition-all"
+              >
+                <Clock className="w-4 h-4" />
+                <span>Practice Due Cases ({dueCasesCount})</span>
+              </button>
+            )}
+
+            <button
+              id="btn-practice-interleaved-cases"
+              onClick={() => {
+                SoundEffects.playClick();
+                const pool = dueCasesCount > 0 ? dueCases : allCases;
+                const interleaved = interleaveCases(pool, { prioritizeConfused: true });
+                onStartFilterSession(interleaved, `Interleaved Cases (${interleaved.length})`);
+              }}
+              className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm shadow-[0_0_20px_rgba(99,102,241,0.3)] active:scale-95 transition-all"
+              title="Interleaved practice across differential diagnoses (Rohrer & Taylor 2021)"
+            >
+              <Shuffle className="w-4 h-4" />
+              <span>Interleaved Review</span>
+            </button>
+
+            <button
+              id="btn-practice-all-cases"
+              onClick={() => {
+                SoundEffects.playClick();
+                onStartFilterSession(allCases, 'All 78 Clinical Cases');
+              }}
+              className="self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all"
+            >
+              <Play className="w-4 h-4 fill-slate-950" />
+              <span>Study All Cases</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Progress & Quick Stats Ribbon */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mb-8">
+        <div 
+          onClick={() => {
+            SoundEffects.playClick();
+            setActiveFilter('due');
+          }}
+          className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+            activeFilter === 'due' 
+              ? 'bg-slate-100 dark:bg-slate-800/90 border-rose-500/50 shadow-md ring-1 ring-rose-500/30' 
+              : 'bg-white dark:bg-[#161A23] border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+          }`}
+        >
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">
+            <span>Due Today</span>
+            <Clock className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400">
+            {dueCasesCount}
+          </div>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">SRS review queue</span>
+        </div>
         <div 
           onClick={() => {
             SoundEffects.playClick();
@@ -223,6 +297,17 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
             All ({totalCasesCount})
           </button>
           <button
+            onClick={() => setActiveFilter('due')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
+              activeFilter === 'due'
+                ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40'
+                : 'bg-white dark:bg-[#161A23] text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-800 shadow-xs'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            Due ({dueCasesCount})
+          </button>
+          <button
             onClick={() => setActiveFilter('mastered')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
               activeFilter === 'mastered'
@@ -293,6 +378,8 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
               {filteredCases.map((c) => {
                 const status = caseProgress.caseSelfRating?.[c.id];
                 const isBookmarked = (caseProgress.bookmarkedCaseIds || []).includes(c.id);
+                const caseSrs = caseProgress.caseSpacedRepetition?.[c.id];
+                const srsInfo = caseSrs ? getSrsStatusInfo(caseSrs, todayKey) : null;
 
                 return (
                   <div
@@ -316,12 +403,22 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
                         </div>
 
                         <div className="flex items-center gap-1.5">
+                          {srsInfo && (
+                            <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              srsInfo.isDue
+                                ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/30'
+                                : 'text-sky-600 dark:text-sky-400 bg-sky-500/10 border-sky-500/30'
+                            }`}>
+                              <Clock className="w-2.5 h-2.5" />
+                              <span>{srsInfo.label}</span>
+                            </span>
+                          )}
                           {(status === 'knew_it' || status === 'mastered') && (
                             <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
                               <CheckCircle2 className="w-3 h-3" /> Knew It
                             </span>
                           )}
-                          {status === 'needs_review' && (
+                          {status === 'needs_review' && !srsInfo && (
                             <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
                               <AlertCircle className="w-3 h-3" /> Review
                             </span>

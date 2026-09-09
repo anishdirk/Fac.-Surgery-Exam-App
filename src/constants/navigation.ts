@@ -7,5 +7,5 @@ export const MCQ_SECTION_LABEL = 'MCQs';
 export const PART_2_LABEL = 'Part 2';
 
 export type AppSection = 'mcq' | 'part2';
-export type McqTab = 'learn' | 'bank' | 'exam' | 'mistakes';
+export type McqTab = 'learn' | 'bank' | 'exam' | 'mistakes' | 'analytics';
 export type Part2Tab = 'cases';

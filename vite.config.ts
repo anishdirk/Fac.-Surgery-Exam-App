@@ -2,10 +2,57 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        injectRegister: null,
+        includeAssets: [
+          'favicon.svg',
+          'icon-192.svg',
+          'icon-512.svg',
+          'manifest.webmanifest'
+        ],
+        manifest: false,
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,json}'],
+          maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api\/.*/],
+          runtimeCaching: [
+            {
+              urlPattern: ({ request }) =>
+                request.destination === 'style' ||
+                request.destination === 'script' ||
+                request.destination === 'worker',
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'static-resources',
+              }
+            },
+            {
+              urlPattern: ({ request }) => request.destination === 'image',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 30 * 24 * 60 * 60
+                }
+              }
+            }
+          ]
+        },
+        devOptions: {
+          enabled: false
+        }
+      })
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   X, 
   Volume2, 
@@ -10,16 +10,26 @@ import {
   ChevronRight,
   Sun,
   Moon,
-  Check
+  Check,
+  Download,
+  Upload,
+  AlertCircle,
+  CheckCircle2,
+  Award
 } from 'lucide-react';
-import { UserProgress } from '../types';
+import { UserProgress, CaseProgress } from '../types';
 import { SoundEffects } from '../utils/audio';
 import { useTheme } from '../context/ThemeContext';
+import { 
+  ExportedProgressData, 
+  parseAndValidateImportData 
+} from '../utils/progressExportImport';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   progress: UserProgress;
+  caseProgress: CaseProgress;
   soundEnabled: boolean;
   setSoundEnabled: (val: boolean) => void;
   showTranslationByDefault: boolean;
@@ -27,27 +37,92 @@ interface SettingsModalProps {
   onToggleInfiniteHearts: () => void;
   onResetProgress: () => void;
   onOpenInstallGuide: () => void;
+  onOpenCertificate: () => void;
+  onExportProgress: () => void;
+  onImportProgress: (data: ExportedProgressData) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
   progress,
+  caseProgress,
   soundEnabled,
   setSoundEnabled,
   showTranslationByDefault,
   setShowTranslationByDefault,
   onToggleInfiniteHearts,
   onResetProgress,
-  onOpenInstallGuide
+  onOpenInstallGuide,
+  onOpenCertificate,
+  onExportProgress,
+  onImportProgress
 }) => {
   const { theme, setTheme, isDark } = useTheme();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   if (!isOpen) return null;
 
+  const handleTriggerImport = () => {
+    setStatusMessage(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const rawContent = event.target?.result;
+        if (typeof rawContent !== 'string') {
+          setStatusMessage({ type: 'error', text: 'Failed to read the selected backup file.' });
+          return;
+        }
+
+        const validation = parseAndValidateImportData(rawContent);
+        if (validation.success === false) {
+          setStatusMessage({ type: 'error', text: validation.error });
+          return;
+        }
+
+        const imported = validation.data;
+        const exportDate = new Date(imported.exportedAt).toLocaleDateString();
+        const xp = imported.progress.totalXp ?? imported.progress.xp ?? 0;
+        const streak = imported.progress.streakDays ?? imported.progress.streak ?? 1;
+
+        const confirmMsg = `Restore study backup from ${exportDate}?\n` +
+          `• Total XP: ${xp}\n` +
+          `• Streak: ${streak} days\n` +
+          `• Reviewed Cases: ${imported.caseProgress.reviewedCaseIds?.length || 0}\n\n` +
+          `Warning: This will overwrite your current progress on this device.`;
+
+        if (window.confirm(confirmMsg)) {
+          onImportProgress(imported);
+          setStatusMessage({ type: 'success', text: 'Study progress successfully restored!' });
+        }
+      } catch (err: any) {
+        setStatusMessage({ type: 'error', text: err?.message || 'Failed to process the backup file.' });
+      } finally {
+        // Reset file input so re-selecting the same file fires onChange again
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+
+    reader.onerror = () => {
+      setStatusMessage({ type: 'error', text: 'Error reading file from disk.' });
+    };
+
+    reader.readAsText(file);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/60 dark:bg-[#0A0C10]/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-[#161A23] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150 transition-colors">
+      <div className="bg-white dark:bg-[#161A23] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150 transition-colors max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-5">
@@ -64,6 +139,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Feedback Banner */}
+        {statusMessage && (
+          <div className={`mb-4 p-3.5 rounded-2xl flex items-start gap-2.5 text-xs font-semibold animate-in fade-in ${
+            statusMessage.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60'
+              : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800/60'
+          }`}>
+            {statusMessage.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1 leading-relaxed">{statusMessage.text}</div>
+          </div>
+        )}
 
         {/* Options */}
         <div className="space-y-3.5">
@@ -201,6 +292,83 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+          </div>
+
+          {/* Certificate of Progress (PDF) */}
+          <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-[#0F1218] border border-emerald-500/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <Award className="w-3.5 h-3.5" />
+                <span>Board Progress Certificate</span>
+              </div>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                PDF
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-3 leading-relaxed">
+              Generate an official, printable 1-page summary with your candidate name, overall accuracy, topics mastered, and exam readiness verdict.
+            </p>
+            <button
+              type="button"
+              id="btn-open-certificate"
+              onClick={() => {
+                SoundEffects.playClick();
+                onClose();
+                onOpenCertificate();
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wide flex items-center justify-center gap-1.5 transition-all shadow-xs"
+            >
+              <Download className="w-4 h-4 fill-slate-950" />
+              <span>Generate Certificate (PDF)</span>
+            </button>
+          </div>
+
+          {/* Backup & Transfer Progress */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Data Backup & Transfer
+              </div>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                JSON v1
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-3 leading-relaxed">
+              Save your streaks, clinical cases, and XP to a JSON file, or restore progress to a new browser or device.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                id="btn-export-progress"
+                onClick={() => {
+                  SoundEffects.playClick();
+                  onExportProgress();
+                  setStatusMessage({ type: 'success', text: 'Backup downloaded to your device!' });
+                }}
+                className="py-2.5 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export Progress</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-import-progress"
+                onClick={handleTriggerImport}
+                className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Import Progress</span>
+              </button>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
           </div>
 
         </div>

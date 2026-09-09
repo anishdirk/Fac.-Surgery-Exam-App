@@ -13,7 +13,8 @@ import {
   Settings,
   Smartphone,
   Stethoscope,
-  FileText
+  FileText,
+  BarChart2
 } from 'lucide-react';
 import { UserProgress } from '../types';
 import { SoundEffects } from '../utils/audio';
@@ -165,6 +166,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </span>
                     </button>
                   )}
+
+                  <button
+                    id="nav-tab-analytics"
+                    onClick={() => {
+                      SoundEffects.playClick();
+                      setMcqTab('analytics');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      mcqTab === 'analytics'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <BarChart2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                    <span>Analytics</span>
+                  </button>
                 </>
               ) : (
                 /* Part 2 Sub-Tabs */
@@ -295,7 +312,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#0F1218]/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <div className="grid grid-cols-4 h-14 w-full select-none">
+          <div className="grid grid-cols-5 h-14 w-full select-none">
             {/* 1. Path */}
             <button
               id="mobile-tab-learn"
@@ -384,7 +401,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 )}
               </div>
-              <span className="text-[10px] leading-tight tracking-tight">Mistakes</span>
+              <span className="text-[10px] leading-tight tracking-tight">Review</span>
+            </button>
+
+            {/* 5. Analytics */}
+            <button
+              id="mobile-tab-analytics"
+              type="button"
+              onClick={() => {
+                SoundEffects.playClick();
+                setMcqTab('analytics');
+              }}
+              className={`relative flex flex-col items-center justify-center py-1 gap-0.5 transition-colors ${
+                mcqTab === 'analytics'
+                  ? 'text-emerald-600 dark:text-emerald-400 font-black'
+                  : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              {mcqTab === 'analytics' && (
+                <span className="absolute top-0 inset-x-3 h-0.5 bg-emerald-500 rounded-full" />
+              )}
+              <BarChart2 className={`w-4 h-4 ${mcqTab === 'analytics' ? 'stroke-[2.5]' : ''}`} />
+              <span className="text-[10px] leading-tight tracking-tight">Trends</span>
             </button>
           </div>
         </nav>
