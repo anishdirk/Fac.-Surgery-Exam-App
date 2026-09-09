@@ -1,12 +1,28 @@
 import React, { useState, useMemo } from 'react';
-import { RotateCcw, Play, Trash2, Calendar, Clock, Bookmark, Layers, CheckCircle2, ArrowRight, Shuffle, Sparkles, AlertTriangle } from 'lucide-react';
+import { 
+  RotateCcw, 
+  Play, 
+  Trash2, 
+  Calendar, 
+  Clock, 
+  Bookmark, 
+  Layers, 
+  CheckCircle2, 
+  ArrowRight, 
+  Shuffle, 
+  Sparkles, 
+  AlertTriangle,
+  X 
+} from 'lucide-react';
 import { Question, SpacedRepetitionItem, UserProgress } from '../types';
 import { SoundEffects } from '../utils/audio';
 import { formatDateKey, getSrsStatusInfo, isSrsDue } from '../utils/spacedRepetition';
 import { interleaveQuestions } from '../utils/interleavedPractice';
 import { sortQuestionsByMetacognitivePriority } from '../utils/calibration';
+import { Modal } from './Modal';
 
 interface MistakesReviewModalProps {
+  isOpen?: boolean;
   mistakes: number[];
   bookmarkedQuestions?: number[];
   spacedRepetition?: Record<number, SpacedRepetitionItem>;
@@ -21,6 +37,7 @@ type ViewFilter = 'due' | 'all-mistakes' | 'bookmarks';
 type PracticeMode = 'interleaved' | 'blocked';
 
 export const MistakesReviewModal: React.FC<MistakesReviewModalProps> = ({
+  isOpen = true,
   mistakes,
   bookmarkedQuestions = [],
   spacedRepetition = {},
@@ -28,7 +45,7 @@ export const MistakesReviewModal: React.FC<MistakesReviewModalProps> = ({
   allQuestions,
   onStartReview,
   onClearMistakes,
-  onClose: _onClose
+  onClose
 }) => {
   const [activeTab, setActiveTab] = useState<ViewFilter>('due');
   const [practiceMode, setPracticeMode] = useState<PracticeMode>('interleaved');
@@ -90,32 +107,49 @@ export const MistakesReviewModal: React.FC<MistakesReviewModalProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Header Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#161A23] border border-rose-500/30 shadow-xl mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-extrabold text-xs uppercase tracking-wider mb-2">
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Spaced-Repetition Scheduler</span>
+    <Modal isOpen={isOpen} onClose={onClose ?? (() => {})} maxWidth="max-w-4xl" id="mistakes-review-modal">
+      <div className="p-6 sm:p-8 flex flex-col max-h-[90vh] overflow-y-auto">
+        {/* Header Section */}
+        <div className="pb-6 mb-6 border-b border-outline-variant/30">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-shape-full bg-error-container text-on-error-container border border-outline-variant/30 font-extrabold text-label-small uppercase tracking-wider mb-2">
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Spaced-Repetition Scheduler</span>
+              </div>
+              <h1 className="text-headline-medium font-black text-on-surface tracking-tight">
+                Retention & Mistakes Review
+              </h1>
+              <p className="text-body-medium text-on-surface-variant font-medium mt-1 max-w-xl">
+                SM-2 Leitner spaced-repetition surfaces items ready for memory reinforcement. Correct answers expand intervals (1d → 3d → 7d → 14d → 28d); incorrect answers reset for rapid recall.
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Retention & Mistakes Review
-            </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1 max-w-xl">
-              SM-2 Leitner spaced-repetition surfaces items ready for memory reinforcement. Correct answers expand intervals (1d → 3d → 7d → 14d → 28d); incorrect answers reset for rapid recall.
-            </p>
+
+            <div className="flex items-center gap-2 self-start sm:self-center">
+              {onClose && (
+                <button
+                  onClick={() => {
+                    SoundEffects.playClick();
+                    onClose();
+                  }}
+                  className="p-2 rounded-shape-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
+                  aria-label="Close review dialog"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
             {dueQuestionIds.length > 0 && (
               <button
                 id="btn-practice-due-interleaved"
                 onClick={() => handleStartReview(dueQuestionIds, 'Due Spaced Review')}
-                className="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 active:scale-95 text-white font-black text-sm uppercase tracking-wide shadow-[0_0_20px_rgba(244,63,94,0.35)] flex items-center justify-center gap-2 transition-all"
+                className="flex-1 sm:flex-none px-5 py-3 rounded-shape-full bg-primary hover:opacity-95 active:scale-95 text-on-primary font-black text-label-large uppercase tracking-wide shadow-xs flex items-center justify-center gap-2 transition-all"
               >
-                {practiceMode === 'interleaved' ? <Shuffle className="w-4 h-4" /> : <Play className="w-4 h-4 fill-white" />}
+                {practiceMode === 'interleaved' ? <Shuffle className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
                 <span>Practice Due ({dueQuestionIds.length})</span>
               </button>
             )}
@@ -124,7 +158,7 @@ export const MistakesReviewModal: React.FC<MistakesReviewModalProps> = ({
               <button
                 id="btn-practice-all-mistakes"
                 onClick={() => handleStartReview(mistakes, 'All Mistakes Review')}
-                className="flex-1 sm:flex-none px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-[#0F1218] hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 text-slate-800 dark:text-slate-200 font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                className="flex-1 sm:flex-none px-4 py-3 rounded-shape-full border border-outline-variant/30 bg-surface-container-high hover:bg-surface-container-highest active:scale-95 text-on-surface font-bold text-label-large flex items-center justify-center gap-2 transition-all shadow-xs"
                 title="Practice entire mistakes list"
               >
                 <span>Practice All ({mistakes.length})</span>
@@ -138,230 +172,231 @@ export const MistakesReviewModal: React.FC<MistakesReviewModalProps> = ({
                     onClearMistakes();
                   }
                 }}
-                className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#0F1218] text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                className="p-3 rounded-shape-full border border-outline-variant/30 bg-surface-container text-on-surface-variant hover:text-error hover:bg-error-container/40 transition-colors"
                 title="Clear mistakes list"
+                aria-label="Clear mistakes list"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             )}
           </div>
-        </div>
 
-        {/* Practice Mode Selector & Citation */}
-        <div className="mb-4 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Review Ordering:
-            </span>
-            <div className="inline-flex p-1 rounded-xl bg-slate-200 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700">
-              <button
-                type="button"
-                id="btn-mode-interleaved"
-                onClick={() => {
-                  SoundEffects.playClick();
-                  setPracticeMode('interleaved');
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  practiceMode === 'interleaved'
-                    ? 'bg-rose-500 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Shuffle className="w-3 h-3" />
-                <span>Interleaved (Mixed)</span>
-              </button>
-              <button
-                type="button"
-                id="btn-mode-blocked"
-                onClick={() => {
-                  SoundEffects.playClick();
-                  setPracticeMode('blocked');
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  practiceMode === 'blocked'
-                    ? 'bg-rose-500 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Layers className="w-3 h-3" />
-                <span>Blocked (By Topic)</span>
-              </button>
+          {/* Practice Mode Selector & Citation */}
+          <div className="p-3.5 rounded-shape-md bg-surface-container border border-outline-variant/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-label-small font-black uppercase tracking-wider text-on-surface-variant">
+                Review Ordering:
+              </span>
+              <div className="inline-flex p-1 rounded-shape-full bg-surface-container-highest border border-outline-variant/30">
+                <button
+                  type="button"
+                  id="btn-mode-interleaved"
+                  onClick={() => {
+                    SoundEffects.playClick();
+                    setPracticeMode('interleaved');
+                  }}
+                  className={`px-3 py-1 rounded-shape-full text-label-medium font-bold transition-all flex items-center gap-1.5 ${
+                    practiceMode === 'interleaved'
+                      ? 'bg-primary text-on-primary shadow-xs'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  <Shuffle className="w-3 h-3" />
+                  <span>Interleaved (Mixed)</span>
+                </button>
+                <button
+                  type="button"
+                  id="btn-mode-blocked"
+                  onClick={() => {
+                    SoundEffects.playClick();
+                    setPracticeMode('blocked');
+                  }}
+                  className={`px-3 py-1 rounded-shape-full text-label-medium font-bold transition-all flex items-center gap-1.5 ${
+                    practiceMode === 'blocked'
+                      ? 'bg-primary text-on-primary shadow-xs'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  <Layers className="w-3 h-3" />
+                  <span>Blocked (By Topic)</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="text-body-small text-on-surface-variant flex items-center gap-1 font-medium">
+              <Sparkles className="w-3.5 h-3.5 text-tertiary shrink-0" />
+              <span>
+                {practiceMode === 'interleaved'
+                  ? 'Interleaved: +50–125% retention (Rohrer & Taylor 2021). Mixes Acute Abdomen & differentials.'
+                  : 'Blocked: Groups questions sequentially by anatomical chapter.'}
+              </span>
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 font-medium">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span>
-              {practiceMode === 'interleaved'
-                ? 'Interleaved: +50–125% retention (Rohrer & Taylor 2021). Mixes Acute Abdomen & surgical differentials.'
-                : 'Blocked: Groups questions sequentially by anatomical chapter.'}
-            </span>
-          </div>
-        </div>
-
-        {/* View Switcher Tabs */}
-        <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-200 dark:border-slate-800/80">
-          <button
-            onClick={() => setActiveTab('due')}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
-              activeTab === 'due'
-                ? 'bg-rose-500 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Due Today</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-              activeTab === 'due' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-            }`}>
-              {dueQuestionIds.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('all-mistakes')}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
-              activeTab === 'all-mistakes'
-                ? 'bg-rose-500 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-            }`}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>All Mistakes</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-              activeTab === 'all-mistakes' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-            }`}>
-              {mistakes.length}
-            </span>
-          </button>
-
-          {bookmarkedQuestions.length > 0 && (
+          {/* View Switcher Tabs */}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             <button
-              onClick={() => setActiveTab('bookmarks')}
-              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
-                activeTab === 'bookmarks'
-                  ? 'bg-rose-500 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+              onClick={() => setActiveTab('due')}
+              className={`px-4 py-2 rounded-shape-full text-label-medium font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                activeTab === 'due'
+                  ? 'bg-primary text-on-primary shadow-xs'
+                  : 'bg-surface-container hover:bg-surface-container-high text-on-surface-variant'
               }`}
             >
-              <Bookmark className="w-3.5 h-3.5" />
-              <span>Bookmarked</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                activeTab === 'bookmarks' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+              <Clock className="w-3.5 h-3.5" />
+              <span>Due Today</span>
+              <span className={`px-1.5 py-0.2 rounded-shape-full text-[10px] font-black ${
+                activeTab === 'due' ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-container-highest text-on-surface-variant'
               }`}>
-                {bookmarkedQuestions.length}
+                {dueQuestionIds.length}
               </span>
             </button>
-          )}
-        </div>
-      </div>
 
-      {/* Questions list */}
-      {displayedQuestions.length === 0 ? (
-        <div className="p-12 text-center bg-white dark:bg-[#161A23] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-3xl mx-auto mb-3">
-            ✨
-          </div>
-          <h3 className="text-lg font-black text-slate-900 dark:text-white">
-            {activeTab === 'due' ? 'No Reviews Due Today!' : 'No Questions in this Queue!'}
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-            {activeTab === 'due'
-              ? 'All spaced-repetition items are mastered or scheduled for future dates. Great job staying on track!'
-              : 'You have no questions currently queued in this category.'}
-          </p>
-          {activeTab === 'due' && mistakes.length > 0 && (
             <button
               onClick={() => setActiveTab('all-mistakes')}
-              className="mt-4 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              className={`px-4 py-2 rounded-shape-full text-label-medium font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                activeTab === 'all-mistakes'
+                  ? 'bg-primary text-on-primary shadow-xs'
+                  : 'bg-surface-container hover:bg-surface-container-high text-on-surface-variant'
+              }`}
             >
-              <span>View All {mistakes.length} Saved Mistakes</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>All Mistakes</span>
+              <span className={`px-1.5 py-0.2 rounded-shape-full text-[10px] font-black ${
+                activeTab === 'all-mistakes' ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-container-highest text-on-surface-variant'
+              }`}>
+                {mistakes.length}
+              </span>
             </button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {displayedQuestions.map((q) => {
-            const correctOpt = q.options.find(o => o.key.toLowerCase() === q.correctKey.toLowerCase());
-            const srsItem = spacedRepetition[q.id];
-            const srsInfo = getSrsStatusInfo(srsItem, todayKey);
 
-            return (
-              <div
-                key={`srs-question-${q.id}`}
-                className="p-5 rounded-2xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+            {bookmarkedQuestions.length > 0 && (
+              <button
+                onClick={() => setActiveTab('bookmarks')}
+                className={`px-4 py-2 rounded-shape-full text-label-medium font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                  activeTab === 'bookmarks'
+                    ? 'bg-primary text-on-primary shadow-xs'
+                    : 'bg-surface-container hover:bg-surface-container-high text-on-surface-variant'
+                }`}
               >
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-black text-xs">
-                      #{q.number}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
-                      {q.topicId}
-                    </span>
-
-                    {/* SRS Status Pill */}
-                    {srsInfo.isDue ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-[11px] font-bold">
-                        <Clock className="w-3 h-3" />
-                        <span>Due Today</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 text-[11px] font-bold">
-                        <Calendar className="w-3 h-3" />
-                        <span>{srsInfo.label} (Interval: {srsInfo.intervalDays}d)</span>
-                      </span>
-                    )}
-
-                    {srsItem && (srsItem.consecutiveCorrect ?? srsItem.repetitions ?? 0) > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Box {srsInfo.boxLevel} ({srsItem.consecutiveCorrect ?? srsItem.repetitions} streak)</span>
-                      </span>
-                    )}
-
-                    {/* Metacognitive Confidence Alert */}
-                    {history[q.id]?.confidence === 'high' && !history[q.id]?.isCorrect && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider animate-pulse shadow-xs">
-                        <AlertTriangle className="w-3 h-3" />
-                        <span>High-Confidence Error</span>
-                      </span>
-                    )}
-                    {history[q.id]?.confidence === 'low' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
-                        <span>Low Confidence Guess</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <h4 className="font-bold text-slate-900 dark:text-white text-sm leading-snug">
-                    {q.questionRu}
-                  </h4>
-                  {q.questionEn && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                      {q.questionEn}
-                    </p>
-                  )}
-                  <div className="mt-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg inline-block">
-                    Correct: ({q.correctKey.toUpperCase()}) {correctOpt?.textRu}
-                  </div>
-                </div>
-
-                <div className="flex sm:flex-col items-center gap-2 self-end sm:self-center shrink-0">
-                  <button
-                    onClick={() => handleStartReview([q.id], `Question #${q.number} Review`)}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-500/15 dark:hover:text-rose-400 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5"
-                  >
-                    <Play className="w-3 h-3" />
-                    <span>Practice</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                <Bookmark className="w-3.5 h-3.5" />
+                <span>Bookmarked</span>
+                <span className={`px-1.5 py-0.2 rounded-shape-full text-[10px] font-black ${
+                  activeTab === 'bookmarks' ? 'bg-on-primary/20 text-on-primary' : 'bg-surface-container-highest text-on-surface-variant'
+                }`}>
+                  {bookmarkedQuestions.length}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
-      )}
-    </div>
+
+        {/* Questions list */}
+        {displayedQuestions.length === 0 ? (
+          <div className="p-12 text-center bg-surface-container rounded-shape-lg border border-outline-variant/30">
+            <div className="w-16 h-16 rounded-shape-full bg-primary-container text-primary flex items-center justify-center text-3xl mx-auto mb-3">
+              ✨
+            </div>
+            <h3 className="text-title-large font-black text-on-surface">
+              {activeTab === 'due' ? 'No Reviews Due Today!' : 'No Questions in this Queue!'}
+            </h3>
+            <p className="text-body-small text-on-surface-variant mt-1 max-w-sm mx-auto">
+              {activeTab === 'due'
+                ? 'All spaced-repetition items are mastered or scheduled for future dates. Great job staying on track!'
+                : 'You have no questions currently queued in this category.'}
+            </p>
+            {activeTab === 'due' && mistakes.length > 0 && (
+              <button
+                onClick={() => setActiveTab('all-mistakes')}
+                className="mt-4 px-4 py-2 rounded-shape-full bg-surface-container-highest hover:bg-surface-container-high text-on-surface text-label-large font-bold transition-all inline-flex items-center gap-1.5"
+              >
+                <span>View All {mistakes.length} Saved Mistakes</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {displayedQuestions.map((q) => {
+              const correctOpt = q.options.find(o => o.key.toLowerCase() === q.correctKey.toLowerCase());
+              const srsItem = spacedRepetition[q.id];
+              const srsInfo = getSrsStatusInfo(srsItem, todayKey);
+
+              return (
+                <div
+                  key={`srs-question-${q.id}`}
+                  className="p-5 rounded-shape-md bg-surface-container border border-outline-variant/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-outline-variant/60 hover:bg-surface-container-high transition-all"
+                >
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="px-2 py-0.5 rounded-shape-xs bg-surface-container-highest border border-outline-variant/30 text-on-surface font-black text-label-small">
+                        #{q.number}
+                      </span>
+                      <span className="text-label-small font-bold text-on-surface-variant uppercase">
+                        {q.topicId}
+                      </span>
+
+                      {/* SRS Status Pill */}
+                      {srsInfo.isDue ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-shape-xs bg-error-container border border-outline-variant/30 text-on-error-container text-[11px] font-bold">
+                          <Clock className="w-3 h-3" />
+                          <span>Due Today</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-shape-xs bg-secondary-container border border-outline-variant/30 text-on-secondary-container text-[11px] font-bold">
+                          <Calendar className="w-3 h-3" />
+                          <span>{srsInfo.label} (Interval: {srsInfo.intervalDays}d)</span>
+                        </span>
+                      )}
+
+                      {srsItem && (srsItem.consecutiveCorrect ?? srsItem.repetitions ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-shape-xs bg-primary-container border border-outline-variant/30 text-on-primary-container text-[11px] font-bold">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Box {srsInfo.boxLevel} ({srsItem.consecutiveCorrect ?? srsItem.repetitions} streak)</span>
+                        </span>
+                      )}
+
+                      {/* Metacognitive Confidence Alert */}
+                      {history[q.id]?.confidence === 'high' && !history[q.id]?.isCorrect && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-shape-xs bg-error text-on-error text-[10px] font-black uppercase tracking-wider animate-pulse shadow-xs">
+                          <AlertTriangle className="w-3 h-3" />
+                          <span>High-Confidence Error</span>
+                        </span>
+                      )}
+                      {history[q.id]?.confidence === 'low' && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-shape-xs bg-tertiary-container text-on-tertiary-container text-[10px] font-bold border border-outline-variant/30">
+                          <span>Low Confidence Guess</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <h4 className="font-bold text-on-surface text-title-small leading-snug">
+                      {q.questionRu}
+                    </h4>
+                    {q.questionEn && (
+                      <p className="text-body-small text-on-surface-variant mt-1 font-medium">
+                        {q.questionEn}
+                      </p>
+                    )}
+                    <div className="mt-2 text-label-medium font-bold text-on-primary-container bg-primary-container border border-outline-variant/30 px-2.5 py-1 rounded-shape-xs inline-block">
+                      Correct: ({q.correctKey.toUpperCase()}) {correctOpt?.textRu}
+                    </div>
+                  </div>
+
+                  <div className="flex sm:flex-col items-center gap-2 self-end sm:self-center shrink-0">
+                    <button
+                      onClick={() => handleStartReview([q.id], `Question #${q.number} Review`)}
+                      className="px-3 py-1.5 rounded-shape-full bg-surface-container-highest hover:bg-primary hover:text-on-primary text-on-surface text-label-medium font-bold transition-colors flex items-center gap-1.5 shadow-xs"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                      <span>Practice</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 };

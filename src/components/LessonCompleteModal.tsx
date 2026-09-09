@@ -7,13 +7,14 @@ import {
   ArrowRight, 
   CheckCircle2, 
   Award,
-  Trophy,
-  Stethoscope
+  Trophy
 } from 'lucide-react';
 import { QuizSession } from '../types';
 import { SoundEffects } from '../utils/audio';
+import { Modal } from './Modal';
 
 interface LessonCompleteModalProps {
+  isOpen?: boolean;
   session: QuizSession;
   onContinue: () => void;
   onReviewMistakes: () => void;
@@ -21,6 +22,7 @@ interface LessonCompleteModalProps {
 }
 
 export const LessonCompleteModal: React.FC<LessonCompleteModalProps> = ({
+  isOpen = true,
   session,
   onContinue,
   onReviewMistakes,
@@ -62,23 +64,22 @@ export const LessonCompleteModal: React.FC<LessonCompleteModalProps> = ({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/60 dark:bg-[#0A0C10]/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-[#161A23] rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 text-center animate-in fade-in zoom-in-95 duration-200 transition-colors">
-        
+    <Modal isOpen={isOpen} onClose={onContinue} maxWidth="max-w-md" id="lesson-complete-modal">
+      <div className="p-6 sm:p-8 text-center flex flex-col">
         {/* Surgical Medical Badge & Trophy */}
-        <div className="relative mx-auto w-24 h-24 mb-4">
-          <div className="w-24 h-24 rounded-3xl bg-amber-50 dark:bg-[#0F1218] border-2 border-amber-400/60 dark:border-amber-500/50 flex items-center justify-center shadow-[0_0_25px_rgba(245,158,11,0.25)]">
-            <Trophy className="w-12 h-12 text-amber-500" />
+        <div className="relative mx-auto w-24 h-24 mb-4 shrink-0">
+          <div className="w-24 h-24 rounded-shape-xl bg-tertiary-container border-2 border-outline-variant/30 flex items-center justify-center shadow-xs">
+            <Trophy className="w-12 h-12 text-tertiary" />
           </div>
-          <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-slate-950 p-2 rounded-full shadow-md">
-            <Sparkles className="w-4 h-4 fill-slate-950 text-slate-950" />
+          <div className="absolute -bottom-2 -right-2 bg-primary text-on-primary p-2 rounded-shape-full shadow-md">
+            <Sparkles className="w-4 h-4 fill-current text-on-primary" />
           </div>
         </div>
 
-        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+        <h2 className="text-headline-medium font-black text-on-surface tracking-tight">
           {accuracy >= 80 ? 'Lesson Mastered!' : 'Practice Finished!'}
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+        <p className="text-body-medium text-on-surface-variant font-medium mt-1">
           {accuracy >= 80 
             ? 'Superb clinical accuracy! You are mastering Russian surgical concepts.' 
             : 'Good effort! Review your mistakes to reinforce high-yield concepts.'}
@@ -86,56 +87,54 @@ export const LessonCompleteModal: React.FC<LessonCompleteModalProps> = ({
 
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-3 my-6">
-          
           {/* Accuracy */}
-          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
-            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400 font-black text-xl">
+          <div className="p-3.5 rounded-shape-lg bg-primary-container border border-outline-variant/30">
+            <div className="flex items-center justify-center gap-1 text-primary font-black text-title-large">
               <Award className="w-5 h-5" />
               <span>{accuracy}%</span>
             </div>
-            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider block mt-0.5">
+            <span className="text-[11px] font-bold text-on-primary-container uppercase tracking-wider block mt-0.5">
               Accuracy
             </span>
           </div>
 
           {/* XP Gained */}
-          <div className="p-3.5 rounded-2xl bg-sky-500/10 border border-sky-500/30">
-            <div className="flex items-center justify-center gap-1 text-sky-600 dark:text-sky-400 font-black text-xl">
-              <Sparkles className="w-5 h-5 fill-sky-400" />
+          <div className="p-3.5 rounded-shape-lg bg-secondary-container border border-outline-variant/30">
+            <div className="flex items-center justify-center gap-1 text-secondary font-black text-title-large">
+              <Sparkles className="w-5 h-5 fill-current" />
               <span>+{session.xpGained}</span>
             </div>
-            <span className="text-[11px] font-bold text-sky-700 dark:text-sky-300 uppercase tracking-wider block mt-0.5">
+            <span className="text-[11px] font-bold text-on-secondary-container uppercase tracking-wider block mt-0.5">
               Total XP
             </span>
           </div>
 
           {/* Max Combo */}
-          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400 font-black text-xl">
-              <Flame className="w-5 h-5 fill-amber-400 text-amber-400" />
+          <div className="p-3.5 rounded-shape-lg bg-tertiary-container border border-outline-variant/30">
+            <div className="flex items-center justify-center gap-1 text-tertiary font-black text-title-large">
+              <Flame className="w-5 h-5 fill-current" />
               <span>{session.comboMax}</span>
             </div>
-            <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider block mt-0.5">
+            <span className="text-[11px] font-bold text-on-tertiary-container uppercase tracking-wider block mt-0.5">
               Max Combo
             </span>
           </div>
-
         </div>
 
         {/* Detailed Breakdown */}
-        <div className="flex items-center justify-around py-3 px-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800 text-xs font-bold mb-6">
-          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+        <div className="flex items-center justify-around py-3 px-4 rounded-shape-lg bg-surface-container border border-outline-variant/30 text-body-small font-bold mb-6">
+          <div className="flex items-center gap-1.5 text-primary">
             <CheckCircle2 className="w-4 h-4" />
             <span>{total}/{total} Mastered</span>
           </div>
-          <div className="h-4 w-px bg-slate-300 dark:bg-slate-800" />
+          <div className="h-4 w-px bg-outline-variant/30" />
           {incorrectCount > 0 ? (
-            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <div className="flex items-center gap-1.5 text-tertiary">
               <RotateCcw className="w-4 h-4" />
               <span>{incorrectCount} Repeated & Solved</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+            <div className="flex items-center gap-1.5 text-primary">
               <Sparkles className="w-4 h-4" />
               <span>100% First Try!</span>
             </div>
@@ -144,14 +143,13 @@ export const LessonCompleteModal: React.FC<LessonCompleteModalProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-3">
-          
           <button
             id="btn-complete-continue"
             onClick={() => {
               SoundEffects.playClick();
               onContinue();
             }}
-            className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-shape-full bg-primary hover:opacity-95 active:scale-95 text-on-primary font-black text-label-large uppercase tracking-wider shadow-xs transition-all flex items-center justify-center gap-2"
           >
             <span>Continue</span>
             <ArrowRight className="w-4 h-4" />
@@ -164,9 +162,9 @@ export const LessonCompleteModal: React.FC<LessonCompleteModalProps> = ({
                 SoundEffects.playClick();
                 onReviewMistakes();
               }}
-              className="w-full py-3 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 font-extrabold text-sm border border-rose-500/40 shadow-xs transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-shape-full bg-error-container hover:opacity-90 text-on-error-container font-extrabold text-label-large border border-outline-variant/30 shadow-xs transition-all flex items-center justify-center gap-2"
             >
-              <RotateCcw className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+              <RotateCcw className="w-4 h-4 text-error" />
               <span>Review {incorrectCount} Mistakes Now</span>
             </button>
           )}
@@ -177,14 +175,12 @@ export const LessonCompleteModal: React.FC<LessonCompleteModalProps> = ({
               SoundEffects.playClick();
               onRestart();
             }}
-            className="w-full py-2.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs transition-colors"
+            className="w-full py-2.5 rounded-shape-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest font-bold text-label-medium transition-colors"
           >
             Replay this lesson
           </button>
-
         </div>
-
       </div>
-    </div>
+    </Modal>
   );
 };

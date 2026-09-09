@@ -3,8 +3,6 @@ import {
   Flame, 
   Heart, 
   BookOpen, 
-  Layers, 
-  Shuffle, 
   Clock, 
   Sparkles, 
   HelpCircle,
@@ -13,12 +11,13 @@ import {
   Settings,
   Smartphone,
   Stethoscope,
-  FileText,
-  BarChart2
+  BarChart2,
+  Shuffle
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { UserProgress } from '../types';
 import { SoundEffects } from '../utils/audio';
-import { AppSection, McqTab, Part2Tab, PART_2_LABEL } from '../constants/navigation';
+import { AppSection, McqTab, Part2Tab } from '../constants/navigation';
 import { SectionSwitcher } from './SectionSwitcher';
 
 interface NavbarProps {
@@ -54,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0F1218]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
+      <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-outline-variant/40 transition-colors">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
             
@@ -72,15 +71,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 className="flex items-center gap-2 sm:gap-3 cursor-pointer group select-none"
               >
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.35)] group-hover:scale-105 transition-transform shrink-0">
-                  <Stethoscope className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950 stroke-[2.5]" />
+                {/* M3 Expressive Shape-lg Logo Container with Tonal Primary Palette */}
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-shape-lg bg-primary-container text-on-primary-container flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0 border border-outline-variant/40">
+                  <Stethoscope className="w-4 h-4 sm:w-5 sm:h-5 text-on-primary-container stroke-[2.5]" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base tracking-tight">SurgiMed</span>
-                    <span className="hidden sm:inline-block px-1.5 py-0.2 text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider">RU-MED</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-on-surface text-title-medium sm:text-title-large tracking-tight">SurgiMed</span>
+                    <span className="hidden sm:inline-block px-1.5 py-0.2 text-[10px] font-bold bg-primary-container/70 text-on-primary-container border border-outline-variant/50 rounded-shape-xs uppercase tracking-wider">RU-MED</span>
                   </div>
-                  <p className="hidden sm:block text-[11px] text-slate-500 dark:text-slate-400 font-medium -mt-0.5">Surgical Prep Suite</p>
+                  <p className="hidden sm:block text-label-small text-on-surface-variant font-medium -mt-0.5">Surgical Prep Suite</p>
                 </div>
               </div>
 
@@ -94,9 +94,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Desktop Contextual Sub-Navigation Links */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1.5">
               {section === 'mcq' ? (
-                /* MCQ Sub-Tabs */
+                /* MCQ Sub-Tabs with M3 Expressive Pill Tokens & Outlined/Filled Icons */
                 <>
                   <button
                     id="nav-tab-learn"
@@ -104,13 +104,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                       SoundEffects.playClick();
                       setMcqTab('learn');
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    className={`px-3.5 py-1.5 rounded-shape-full text-label-large flex items-center gap-1.5 transition-all ${
                       mcqTab === 'learn'
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                        ? 'bg-primary-container text-on-primary-container border border-outline-variant/40 shadow-xs font-bold'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-medium'
                     }`}
                   >
-                    <Zap className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                    <Zap 
+                      className={`w-3.5 h-3.5 ${mcqTab === 'learn' ? 'text-on-primary-container stroke-[2.25]' : 'text-outline stroke-[1.75]'}`} 
+                      fill={mcqTab === 'learn' ? 'currentColor' : 'none'}
+                    />
                     <span>Path</span>
                   </button>
 
@@ -120,13 +123,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                       SoundEffects.playClick();
                       setMcqTab('bank');
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    className={`px-3.5 py-1.5 rounded-shape-full text-label-large flex items-center gap-1.5 transition-all ${
                       mcqTab === 'bank'
-                        ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                        ? 'bg-secondary-container text-on-secondary-container border border-outline-variant/40 shadow-xs font-bold'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-medium'
                     }`}
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+                    <BookOpen 
+                      className={`w-3.5 h-3.5 ${mcqTab === 'bank' ? 'text-on-secondary-container stroke-[2.25]' : 'text-outline stroke-[1.75]'}`} 
+                      fill={mcqTab === 'bank' ? 'currentColor' : 'none'}
+                    />
                     <span>Question Bank (620)</span>
                   </button>
 
@@ -136,13 +142,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                       SoundEffects.playClick();
                       setMcqTab('exam');
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    className={`px-3.5 py-1.5 rounded-shape-full text-label-large flex items-center gap-1.5 transition-all ${
                       mcqTab === 'exam'
-                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                        ? 'bg-tertiary-container text-on-tertiary-container border border-outline-variant/40 shadow-xs font-bold'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-medium'
                     }`}
                   >
-                    <Clock className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                    <Clock 
+                      className={`w-3.5 h-3.5 ${mcqTab === 'exam' ? 'text-on-tertiary-container stroke-[2.25]' : 'text-outline stroke-[1.75]'}`} 
+                      fill={mcqTab === 'exam' ? 'currentColor' : 'none'}
+                    />
                     <span>Exam Mode</span>
                   </button>
 
@@ -153,15 +162,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                         SoundEffects.playClick();
                         setMcqTab('mistakes');
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      className={`px-3.5 py-1.5 rounded-shape-full text-label-large flex items-center gap-1.5 transition-all ${
                         mcqTab === 'mistakes'
-                          ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10'
+                          ? 'bg-error-container text-on-error-container border border-outline-variant/40 shadow-xs font-bold'
+                          : 'text-on-surface-variant hover:text-error hover:bg-error-container/20 font-medium'
                       }`}
                     >
-                      <RotateCcw className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
+                      <RotateCcw className={`w-3.5 h-3.5 ${mcqTab === 'mistakes' ? 'text-on-error-container stroke-[2.5]' : 'text-outline stroke-[1.75]'}`} />
                       <span>Mistakes</span>
-                      <span className="px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[10px] font-black">
+                      <span className="px-1.5 py-0.2 bg-error text-on-error rounded-shape-full text-[10px] font-black shadow-xs">
                         {mistakesCount}
                       </span>
                     </button>
@@ -173,13 +182,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                       SoundEffects.playClick();
                       setMcqTab('analytics');
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    className={`px-3.5 py-1.5 rounded-shape-full text-label-large flex items-center gap-1.5 transition-all ${
                       mcqTab === 'analytics'
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                        ? 'bg-primary-container text-on-primary-container border border-outline-variant/40 shadow-xs font-bold'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-medium'
                     }`}
                   >
-                    <BarChart2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                    <BarChart2 
+                      className={`w-3.5 h-3.5 ${mcqTab === 'analytics' ? 'text-on-primary-container stroke-[2.25]' : 'text-outline stroke-[1.75]'}`} 
+                      fill={mcqTab === 'analytics' ? 'currentColor' : 'none'}
+                    />
                     <span>Analytics</span>
                   </button>
                 </>
@@ -191,9 +203,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     SoundEffects.playClick();
                     setPart2Tab('cases');
                   }}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all bg-teal-500/15 text-teal-600 dark:text-teal-300 border border-teal-500/40 shadow-[0_0_15px_rgba(20,184,166,0.15)]"
+                  className="px-4 py-1.5 rounded-shape-full text-label-large font-bold flex items-center gap-1.5 transition-all bg-primary-container text-on-primary-container border border-outline-variant/40 shadow-xs"
                 >
-                  <Stethoscope className="w-3.5 h-3.5 text-teal-500 dark:text-teal-400" />
+                  <Stethoscope className="w-3.5 h-3.5 text-on-primary-container stroke-[2.25]" />
                   <span>Clinical Cases (78)</span>
                 </button>
               )}
@@ -202,40 +214,40 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Gamification Counters & Cleaned Header Action Icons */}
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               
-              {/* Streak (Compact on Mobile: icon + number) */}
+              {/* Streak Badge (Tonal Tertiary Role: Amber #F59E0B) */}
               <div 
                 id="header-streak-badge"
                 title="Daily Study Streak"
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-extrabold text-xs shadow-xs shrink-0"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-shape-full bg-tertiary-container border border-outline-variant/30 text-on-tertiary-container font-extrabold text-label-medium shadow-xs shrink-0"
               >
-                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-amber-400 fill-amber-400 animate-pulse" />
+                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-on-tertiary-container fill-current animate-pulse" />
                 <span>{progress.streakDays || progress.streak || 1}</span>
               </div>
 
-              {/* Gems / XP (Compact on Mobile: icon + number only, drop "XP") */}
+              {/* XP / Gems Badge (Tonal Secondary Role: Slate-Blue #5B7A9B) */}
               <div 
                 id="header-xp-badge"
                 title="Experience Points (XP)"
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 font-extrabold text-xs shadow-xs shrink-0"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-shape-full bg-secondary-container border border-outline-variant/30 text-on-secondary-container font-extrabold text-label-medium shadow-xs shrink-0"
               >
-                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 dark:text-sky-400 fill-sky-400" />
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-on-secondary-container fill-current" />
                 <span>{progress.totalXp || progress.xp || 0}</span>
                 <span className="hidden sm:inline"> XP</span>
               </div>
 
-              {/* Hearts (MCQ-Only Mechanic — compact on Mobile) */}
+              {/* Hearts Badge (Tonal Error Role: Red #DC2626) */}
               {section === 'mcq' && (
                 <div 
                   id="header-hearts-badge"
                   title={progress.infiniteHearts ? "Infinite Hearts Mode Active" : `${progress.hearts}/5 Hearts`}
-                  className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-extrabold text-xs shadow-xs shrink-0"
+                  className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-shape-full bg-error-container border border-outline-variant/30 text-on-error-container font-extrabold text-label-medium shadow-xs shrink-0"
                 >
-                  <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 dark:text-rose-400 fill-rose-400" />
+                  <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-on-error-container fill-current" />
                   <span>{progress.infiniteHearts ? '∞' : progress.hearts}</span>
                 </div>
               )}
 
-              {/* Medical Glossary Helper */}
+              {/* Medical Glossary Helper Button */}
               <button
                 id="btn-open-glossary"
                 onClick={() => {
@@ -243,12 +255,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onOpenGlossary();
                 }}
                 title="Medical Sign Glossary & Eponyms"
-                className="p-1.5 sm:p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shrink-0"
+                className="p-1.5 sm:p-2 rounded-shape-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors shrink-0"
               >
                 <HelpCircle className="w-4 h-4" />
               </button>
 
-              {/* Install Android / PWA App */}
+              {/* Install Android / PWA App Button */}
               <button
                 id="btn-nav-install"
                 onClick={() => {
@@ -256,12 +268,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onOpenInstallGuide();
                 }}
                 title="Install Android App / PWA"
-                className="p-1.5 sm:p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shrink-0"
+                className="p-1.5 sm:p-2 rounded-shape-full text-primary hover:text-on-primary-container hover:bg-primary-container/40 transition-colors shrink-0"
               >
-                <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <Smartphone className="w-4 h-4" />
               </button>
 
-              {/* Settings (contains Theme, Sound, Translation, Infinite Hearts, Reset) */}
+              {/* Settings Button */}
               <button
                 id="btn-open-settings"
                 onClick={() => {
@@ -269,7 +281,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onOpenSettings();
                 }}
                 title="Study Preferences & Settings"
-                className="p-1.5 sm:p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                className="p-1.5 sm:p-2 rounded-shape-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors shrink-0"
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -282,9 +294,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     SoundEffects.playClick();
                     onQuickPractice(10);
                   }}
-                  className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs shadow-[0_0_15px_rgba(16,185,129,0.25)] transition-all shrink-0"
+                  className="hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 rounded-shape-full bg-primary hover:opacity-95 active:scale-95 text-on-primary font-bold text-label-large shadow-xs transition-all shrink-0"
                 >
-                  <Shuffle className="w-3.5 h-3.5" />
+                  <Shuffle className="w-3.5 h-3.5 text-on-primary" />
                   <span>Shuffle 10</span>
                 </button>
               )}
@@ -294,7 +306,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Mobile Full-Width Centered Section Switcher Row (Under Logo, md:hidden) */}
-        <div className="md:hidden px-3.5 pb-2 pt-0.5 flex justify-center border-t border-slate-100 dark:border-slate-800/60 bg-white/95 dark:bg-[#0F1218]/95">
+        <div className="md:hidden px-3.5 pb-2 pt-0.5 flex justify-center border-t border-outline-variant/30 bg-surface/90">
           <SectionSwitcher
             section={section}
             onSelectSection={setSection}
@@ -303,17 +315,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </header>
 
-      {/* Fixed Bottom Tab Bar (Mobile Only: md:hidden) */}
-      {/* 2. Mobile Fixed Bottom Navigation Bar (MCQ Navigation) */}
+      {/* Fixed Bottom Navigation Bar (Mobile Only: md:hidden) */}
       {!hideMobileBottomNav && section === 'mcq' && (
         <nav 
           id="mobile-bottom-nav"
           aria-label="Mobile Navigation"
-          className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#0F1218]/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container/95 backdrop-blur-lg border-t border-outline-variant/40 shadow-lg"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <div className="grid grid-cols-5 h-14 w-full select-none">
-            {/* 1. Path */}
+          <div className="grid grid-cols-5 h-16 w-full select-none items-center px-1">
+            
+            {/* 1. Path Tab */}
             <button
               id="mobile-tab-learn"
               type="button"
@@ -321,20 +333,39 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('learn');
               }}
-              className={`relative flex flex-col items-center justify-center py-1 gap-0.5 transition-colors ${
-                mcqTab === 'learn'
-                  ? 'text-emerald-600 dark:text-emerald-400 font-black'
-                  : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
             >
-              {mcqTab === 'learn' && (
-                <span className="absolute top-0 inset-x-3 h-0.5 bg-emerald-500 rounded-full" />
-              )}
-              <Zap className={`w-4 h-4 ${mcqTab === 'learn' ? 'stroke-[2.5]' : ''}`} />
-              <span className="text-[10px] leading-tight tracking-tight">Path</span>
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+                {mcqTab === 'learn' && (
+                  <motion.div
+                    layoutId="mobileNavActivePill"
+                    className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs"
+                    transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
+                  />
+                )}
+                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                  <Zap 
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      mcqTab === 'learn' 
+                        ? 'text-on-primary-container scale-110 stroke-[2.25]' 
+                        : 'text-on-surface-variant stroke-[1.75]'
+                    }`}
+                    fill={mcqTab === 'learn' ? 'currentColor' : 'none'}
+                  />
+                  <span 
+                    className={`text-label-small transition-colors duration-200 ${
+                      mcqTab === 'learn' 
+                        ? 'text-on-primary-container font-extrabold' 
+                        : 'text-on-surface-variant font-medium'
+                    }`}
+                  >
+                    Path
+                  </span>
+                </div>
+              </div>
             </button>
 
-            {/* 2. Question Bank */}
+            {/* 2. Question Bank Tab */}
             <button
               id="mobile-tab-bank"
               type="button"
@@ -342,20 +373,39 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('bank');
               }}
-              className={`relative flex flex-col items-center justify-center py-1 gap-0.5 transition-colors ${
-                mcqTab === 'bank'
-                  ? 'text-indigo-600 dark:text-indigo-400 font-black'
-                  : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
             >
-              {mcqTab === 'bank' && (
-                <span className="absolute top-0 inset-x-3 h-0.5 bg-indigo-500 rounded-full" />
-              )}
-              <BookOpen className={`w-4 h-4 ${mcqTab === 'bank' ? 'stroke-[2.5]' : ''}`} />
-              <span className="text-[10px] leading-tight tracking-tight">Bank</span>
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+                {mcqTab === 'bank' && (
+                  <motion.div
+                    layoutId="mobileNavActivePill"
+                    className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs"
+                    transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
+                  />
+                )}
+                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                  <BookOpen 
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      mcqTab === 'bank' 
+                        ? 'text-on-primary-container scale-110 stroke-[2.25]' 
+                        : 'text-on-surface-variant stroke-[1.75]'
+                    }`}
+                    fill={mcqTab === 'bank' ? 'currentColor' : 'none'}
+                  />
+                  <span 
+                    className={`text-label-small transition-colors duration-200 ${
+                      mcqTab === 'bank' 
+                        ? 'text-on-primary-container font-extrabold' 
+                        : 'text-on-surface-variant font-medium'
+                    }`}
+                  >
+                    Bank
+                  </span>
+                </div>
+              </div>
             </button>
 
-            {/* 3. Exam */}
+            {/* 3. Exam Tab */}
             <button
               id="mobile-tab-exam"
               type="button"
@@ -363,20 +413,39 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('exam');
               }}
-              className={`relative flex flex-col items-center justify-center py-1 gap-0.5 transition-colors ${
-                mcqTab === 'exam'
-                  ? 'text-amber-600 dark:text-amber-400 font-black'
-                  : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
             >
-              {mcqTab === 'exam' && (
-                <span className="absolute top-0 inset-x-3 h-0.5 bg-amber-500 rounded-full" />
-              )}
-              <Clock className={`w-4 h-4 ${mcqTab === 'exam' ? 'stroke-[2.5]' : ''}`} />
-              <span className="text-[10px] leading-tight tracking-tight">Exam</span>
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+                {mcqTab === 'exam' && (
+                  <motion.div
+                    layoutId="mobileNavActivePill"
+                    className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs"
+                    transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
+                  />
+                )}
+                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                  <Clock 
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      mcqTab === 'exam' 
+                        ? 'text-on-primary-container scale-110 stroke-[2.25]' 
+                        : 'text-on-surface-variant stroke-[1.75]'
+                    }`}
+                    fill={mcqTab === 'exam' ? 'currentColor' : 'none'}
+                  />
+                  <span 
+                    className={`text-label-small transition-colors duration-200 ${
+                      mcqTab === 'exam' 
+                        ? 'text-on-primary-container font-extrabold' 
+                        : 'text-on-surface-variant font-medium'
+                    }`}
+                  >
+                    Exam
+                  </span>
+                </div>
+              </div>
             </button>
 
-            {/* 4. Mistakes */}
+            {/* 4. Mistakes Review Tab */}
             <button
               id="mobile-tab-mistakes"
               type="button"
@@ -384,27 +453,45 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('mistakes');
               }}
-              className={`relative flex flex-col items-center justify-center py-1 gap-0.5 transition-colors ${
-                mcqTab === 'mistakes'
-                  ? 'text-rose-600 dark:text-rose-400 font-black'
-                  : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-rose-600 dark:hover:text-rose-400'
-              }`}
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
             >
-              {mcqTab === 'mistakes' && (
-                <span className="absolute top-0 inset-x-3 h-0.5 bg-rose-500 rounded-full" />
-              )}
-              <div className="relative">
-                <RotateCcw className={`w-4 h-4 ${mcqTab === 'mistakes' ? 'stroke-[2.5]' : ''}`} />
-                {mistakesCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 px-1 min-w-[14px] h-3.5 bg-rose-500 text-white rounded-full text-[9px] font-black flex items-center justify-center leading-none">
-                    {mistakesCount}
-                  </span>
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+                {mcqTab === 'mistakes' && (
+                  <motion.div
+                    layoutId="mobileNavActivePill"
+                    className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs"
+                    transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
+                  />
                 )}
+                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                  <div className="relative">
+                    <RotateCcw 
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        mcqTab === 'mistakes' 
+                          ? 'text-on-primary-container scale-110 stroke-[2.5]' 
+                          : 'text-on-surface-variant stroke-[1.75]'
+                      }`}
+                    />
+                    {mistakesCount > 0 && (
+                      <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-3.5 bg-error text-on-error rounded-shape-full text-[9px] font-black flex items-center justify-center leading-none shadow-xs">
+                        {mistakesCount}
+                      </span>
+                    )}
+                  </div>
+                  <span 
+                    className={`text-label-small transition-colors duration-200 ${
+                      mcqTab === 'mistakes' 
+                        ? 'text-on-primary-container font-extrabold' 
+                        : 'text-on-surface-variant font-medium'
+                    }`}
+                  >
+                    Review
+                  </span>
+                </div>
               </div>
-              <span className="text-[10px] leading-tight tracking-tight">Review</span>
             </button>
 
-            {/* 5. Analytics */}
+            {/* 5. Analytics Tab */}
             <button
               id="mobile-tab-analytics"
               type="button"
@@ -412,21 +499,42 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('analytics');
               }}
-              className={`relative flex flex-col items-center justify-center py-1 gap-0.5 transition-colors ${
-                mcqTab === 'analytics'
-                  ? 'text-emerald-600 dark:text-emerald-400 font-black'
-                  : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
             >
-              {mcqTab === 'analytics' && (
-                <span className="absolute top-0 inset-x-3 h-0.5 bg-emerald-500 rounded-full" />
-              )}
-              <BarChart2 className={`w-4 h-4 ${mcqTab === 'analytics' ? 'stroke-[2.5]' : ''}`} />
-              <span className="text-[10px] leading-tight tracking-tight">Trends</span>
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+                {mcqTab === 'analytics' && (
+                  <motion.div
+                    layoutId="mobileNavActivePill"
+                    className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs"
+                    transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
+                  />
+                )}
+                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                  <BarChart2 
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      mcqTab === 'analytics' 
+                        ? 'text-on-primary-container scale-110 stroke-[2.25]' 
+                        : 'text-on-surface-variant stroke-[1.75]'
+                    }`}
+                    fill={mcqTab === 'analytics' ? 'currentColor' : 'none'}
+                  />
+                  <span 
+                    className={`text-label-small transition-colors duration-200 ${
+                      mcqTab === 'analytics' 
+                        ? 'text-on-primary-container font-extrabold' 
+                        : 'text-on-surface-variant font-medium'
+                    }`}
+                  >
+                    Trends
+                  </span>
+                </div>
+              </div>
             </button>
+
           </div>
         </nav>
       )}
     </>
   );
 };
+

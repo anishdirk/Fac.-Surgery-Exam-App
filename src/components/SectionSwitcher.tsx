@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sparkles, FileText, CheckCircle2 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Sparkles, FileText } from 'lucide-react';
 import { MCQ_SECTION_LABEL, PART_2_LABEL, AppSection } from '../constants/navigation';
 import { SoundEffects } from '../utils/audio';
 
@@ -24,19 +25,26 @@ export const SectionSwitcher: React.FC<SectionSwitcherProps> = ({
   return (
     <div 
       id="section-switcher-container"
-      className={`inline-flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-[#121620] border border-slate-200 dark:border-slate-800 shadow-inner select-none ${className}`}
+      className={`inline-flex items-center p-1 rounded-shape-full bg-surface-container border border-outline-variant/30 shadow-inner select-none ${className}`}
     >
       <button
         id="section-switcher-mcq"
         type="button"
         onClick={() => handleSwitch('mcq')}
-        className={`relative flex-1 justify-center px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold flex items-center gap-1.5 transition-all duration-200 ${
+        className={`relative flex-1 justify-center px-3.5 sm:px-5 py-2 rounded-shape-full text-label-medium sm:text-label-large font-black flex items-center gap-2 transition-colors z-10 ${
           section === 'mcq'
-            ? 'bg-white dark:bg-[#1E2534] text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80'
-            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            ? 'text-on-primary-container'
+            : 'text-on-surface-variant hover:text-on-surface'
         }`}
       >
-        <Sparkles className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${section === 'mcq' ? 'text-emerald-500 fill-emerald-500/20' : 'text-slate-400'}`} />
+        {section === 'mcq' && (
+          <motion.div
+            layoutId="section-switcher-active"
+            className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs -z-10"
+            transition={{ type: "spring", stiffness: 450, damping: 32 }}
+          />
+        )}
+        <Sparkles className={`w-4 h-4 transition-colors ${section === 'mcq' ? 'text-primary fill-primary/20' : 'text-on-surface-variant'}`} />
         <span>{MCQ_SECTION_LABEL}</span>
       </button>
 
@@ -44,13 +52,20 @@ export const SectionSwitcher: React.FC<SectionSwitcherProps> = ({
         id="section-switcher-part2"
         type="button"
         onClick={() => handleSwitch('part2')}
-        className={`relative flex-1 justify-center px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold flex items-center gap-1.5 transition-all duration-200 ${
+        className={`relative flex-1 justify-center px-3.5 sm:px-5 py-2 rounded-shape-full text-label-medium sm:text-label-large font-black flex items-center gap-2 transition-colors z-10 ${
           section === 'part2'
-            ? 'bg-white dark:bg-[#1E2534] text-teal-600 dark:text-teal-400 shadow-sm border border-slate-200/80 dark:border-slate-700/80'
-            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            ? 'text-on-primary-container'
+            : 'text-on-surface-variant hover:text-on-surface'
         }`}
       >
-        <FileText className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${section === 'part2' ? 'text-teal-500 fill-teal-500/20' : 'text-slate-400'}`} />
+        {section === 'part2' && (
+          <motion.div
+            layoutId="section-switcher-active"
+            className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs -z-10"
+            transition={{ type: "spring", stiffness: 450, damping: 32 }}
+          />
+        )}
+        <FileText className={`w-4 h-4 transition-colors ${section === 'part2' ? 'text-primary fill-primary/20' : 'text-on-surface-variant'}`} />
         <span>{PART_2_LABEL}</span>
       </button>
     </div>

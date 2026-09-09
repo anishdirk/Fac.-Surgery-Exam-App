@@ -42,6 +42,8 @@ interface CaseReviewCardProps {
   caseProgress: CaseProgress;
   onUpdateSelfRating: (caseId: number, rating: 'knew_it' | 'needs_review' | 'mastered' | null) => void;
   onUpdateCaseConfidence?: (caseId: number, confidence: ConfidenceLevel) => void;
+  onSaveCasePretest?: (caseId: number, text: string) => void;
+  onSaveCaseElaboration?: (caseId: number, text: string) => void;
   onToggleBookmark: (caseId: number) => void;
   onExit: () => void;
   sessionTitle?: string;
@@ -61,6 +63,8 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   caseProgress,
   onUpdateSelfRating,
   onUpdateCaseConfidence,
+  onSaveCasePretest,
+  onSaveCaseElaboration,
   onToggleBookmark,
   onExit,
   sessionTitle = 'Clinical Cases'
