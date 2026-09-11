@@ -75,19 +75,19 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, [activeTopicSummary, analytics.overallTrend]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-8 min-w-0">
       {/* Top Banner */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-xl mb-8">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
+      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-xl mb-8 min-w-0">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 min-w-0">
+          <div className="min-w-0">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs uppercase tracking-wider mb-2">
-              <BarChart3 className="w-3.5 h-3.5" />
+              <BarChart3 className="w-3.5 h-3.5 shrink-0" />
               <span>Performance Intelligence</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight break-words">
               Accuracy & Topic Trends
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1 max-w-xl">
+            <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-1 max-w-xl break-words">
               Real-time analytics computed directly from your answer history. Track retention growth, identify weak surgical topics, and prepare for board readiness.
             </p>
           </div>
@@ -100,7 +100,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               }}
               className="px-4 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-emerald-500 active:scale-95 text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm tracking-wide shadow-xs flex items-center gap-2 transition-all"
             >
-              <Award className="w-4 h-4 text-emerald-500" />
+              <Award className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>Export Certificate (PDF)</span>
             </button>
 
@@ -111,7 +111,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               }}
               className="px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wide shadow-sm dark:shadow-[0_0_20px_rgba(52,211,153,0.3)] flex items-center gap-2 transition-all"
             >
-              <Play className="w-4 h-4 fill-slate-950" />
+              <Play className="w-4 h-4 fill-slate-950 shrink-0" />
               <span>Practice (10 Qs)</span>
             </button>
           </div>
@@ -120,46 +120,46 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         {/* 4 Metric KPI Badges */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
           {/* 1. Overall Accuracy */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80 min-w-0">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1 truncate">
               Overall Accuracy
             </span>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap min-w-0">
               <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
                 {analytics.overallAccuracy}%
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold truncate">
                 ({analytics.totalCorrect}/{analytics.totalAttempts})
               </span>
             </div>
           </div>
 
           {/* 2. Coverage */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80 min-w-0">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1 truncate">
               Curriculum Coverage
             </span>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap min-w-0">
               <span className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400">
                 {analytics.coveragePercent}%
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold truncate">
                 ({analytics.uniqueAttemptedCount}/{analytics.totalCurriculumQuestions})
               </span>
             </div>
           </div>
 
           {/* 3. Strongest Topic */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80 min-w-0">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1 truncate">
               Strongest Topic
             </span>
             {analytics.strongestTopic ? (
-              <div>
+              <div className="min-w-0">
                 <span className="text-sm font-extrabold text-slate-900 dark:text-white truncate block">
                   {analytics.strongestTopic.titleEn}
                 </span>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate block">
                   {analytics.strongestTopic.accuracy}% Accuracy
                 </span>
               </div>
@@ -169,16 +169,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </div>
 
           {/* 4. Focus Weakest Topic */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80 min-w-0">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1 truncate">
               Needs Practice
             </span>
             {analytics.weakestTopic && analytics.weakestTopic.topicId !== analytics.strongestTopic?.topicId ? (
-              <div>
+              <div className="min-w-0">
                 <span className="text-sm font-extrabold text-slate-900 dark:text-white truncate block">
                   {analytics.weakestTopic.titleEn}
                 </span>
-                <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                <span className="text-xs font-bold text-rose-600 dark:text-rose-400 truncate block">
                   {analytics.weakestTopic.accuracy}% Accuracy
                 </span>
               </div>
@@ -190,21 +190,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       </div>
 
       {/* Metacognitive Calibration Dashboard (Higham et al. / Koriat et al.) */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-xl mb-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-          <div>
+      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-xl mb-8 min-w-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6 min-w-0">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <Gauge className="w-5 h-5 text-indigo-500" />
-              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+              <Gauge className="w-5 h-5 text-indigo-500 shrink-0" />
+              <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight break-words">
                 Metacognitive Calibration
               </h2>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">
               NIH Metacognition Model (Higham et al., Koriat et al.): Aligning subjective diagnostic confidence with objective accuracy
             </p>
           </div>
 
-          <span className={`px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border ${
+          <span className={`px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border min-w-0 max-w-full whitespace-normal break-words shrink-0 self-start sm:self-auto text-center ${
             calibration.overallStatus === 'well_calibrated'
               ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
               : calibration.overallStatus === 'overconfident'
@@ -442,16 +442,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             return (
               <div
                 key={`topic-card-${topSummary.topicId}`}
-                className="p-5 rounded-2xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                className="p-5 rounded-2xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all min-w-0"
               >
-                <div>
+                <div className="min-w-0">
                   {/* Status & Trend Header */}
-                  <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center justify-between gap-2 mb-2 flex-wrap min-w-0">
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       {topSummary.totalQuestions} Questions
                     </span>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {/* Trend Badge */}
                       {topSummary.trend === 'improving' && (
                         <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black">

@@ -123,6 +123,14 @@ export interface ClinicalCase {
   answers: CaseSubAnswer[];
 }
 
+export interface CaseSession {
+  cases: ClinicalCase[];
+  currentIndex: number;
+  title: string;
+  initialTotalCases?: number;
+  retryCountPerCase?: Record<number, number>;
+}
+
 // Separate progress tracking — self-assessed, not right/wrong,
 // so it never touches hearts/XP/mistakes from the MCQ system.
 export interface CaseProgress {

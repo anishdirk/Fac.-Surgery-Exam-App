@@ -20,7 +20,12 @@ import {
   Gauge,
   AlertTriangle,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  Brain,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  Clock
 } from 'lucide-react';
 import { 
   ClinicalCase, 
@@ -33,6 +38,7 @@ import { SoundEffects } from '../utils/audio';
 import { ErrorBoundary } from './ErrorBoundary';
 import { parseCaseComparisonResponse } from '../utils/caseComparisonParser';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { getCaseSessionRelearningStats } from '../utils/spacedRepetition';
 
 interface CaseReviewCardProps {
   clinicalCase: ClinicalCase;
@@ -46,7 +52,12 @@ interface CaseReviewCardProps {
   onSaveCaseElaboration?: (caseId: number, text: string) => void;
   onToggleBookmark: (caseId: number) => void;
   onExit: () => void;
+  initialComparisonResult?: CaseComparisonResult | null;
   sessionTitle?: string;
+  masteredInSession?: number;
+  queuedForRetry?: number;
+  totalUniqueCases?: number;
+  isRepeat?: boolean;
 }
 
 // Check speech recognition support
@@ -67,7 +78,12 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   onSaveCaseElaboration,
   onToggleBookmark,
   onExit,
-  sessionTitle = 'Clinical Cases'
+  initialComparisonResult,
+  sessionTitle = 'Clinical Cases',
+  masteredInSession,
+  queuedForRetry,
+  totalUniqueCases,
+  isRepeat
 }) => {
   // Reveal states for answers: individual per sub-question or all
   const [revealedQuestions, setRevealedQuestions] = useState<Record<string, boolean>>({});
@@ -78,7 +94,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [isComparing, setIsComparing] = useState<boolean>(false);
   const [comparisonError, setComparisonError] = useState<string | null>(null);
-  const [comparisonResult, setComparisonResult] = useState<CaseComparisonResult | null>(null);
+  const [comparisonResult, setComparisonResult] = useState<CaseComparisonResult | null>(initialComparisonResult || null);
   const [confidence, setConfidence] = useState<ConfidenceLevel | null>(
     caseProgress.caseConfidence?.[clinicalCase.id] || null
   );
@@ -89,8 +105,85 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
 
   const isSpeechSupported = !!getSpeechRecognitionClass();
 
+  // Pretest (Initial Impression / Priming) State
+  const savedPretestObj = caseProgress.casePretests?.[clinicalCase.id];
+  const [pretestInput, setPretestInput] = useState<string>(savedPretestObj?.text || '');
+  const [isPretestSaved, setIsPretestSaved] = useState<boolean>(!!savedPretestObj?.text);
+  const [isPretestSkipped, setIsPretestSkipped] = useState<boolean>(false);
+  const [isPretestExpanded, setIsPretestExpanded] = useState<boolean>(true);
+  const [isEditingPretest, setIsEditingPretest] = useState<boolean>(false);
+
+  // Elaboration ("Why is this the right answer?") State
+  const savedElaborationObj = caseProgress.caseElaborations?.[clinicalCase.id];
+  const [elaborationInput, setElaborationInput] = useState<string>(savedElaborationObj?.text || '');
+  const [isElaborationSaved, setIsElaborationSaved] = useState<boolean>(!!savedElaborationObj?.text);
+  const [isElaborationSkipped, setIsElaborationSkipped] = useState<boolean>(false);
+  const [isElaborationExpanded, setIsElaborationExpanded] = useState<boolean>(true);
+  const [isEditingElaboration, setIsEditingElaboration] = useState<boolean>(false);
+
+  // Tracking refs to ensure "move on" auto-saving without stale closures
+  const pretestInputRef = useRef(pretestInput);
+  pretestInputRef.current = pretestInput;
+  const isPretestSavedRef = useRef(isPretestSaved);
+  isPretestSavedRef.current = isPretestSaved;
+
+  const elaborationInputRef = useRef(elaborationInput);
+  elaborationInputRef.current = elaborationInput;
+  const isElaborationSavedRef = useRef(isElaborationSaved);
+  isElaborationSavedRef.current = isElaborationSaved;
+
+  const currentCaseIdRef = useRef(clinicalCase.id);
+
+  const formatTimestamp = (timestamp?: number) => {
+    if (!timestamp) return null;
+    try {
+      return new Date(timestamp).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper to flush / auto-save any entered reflections when moving on or switching cases
+  const flushUnsavedReflections = (targetCaseId = clinicalCase.id) => {
+    const enteredPretest = pretestInputRef.current.trim();
+    if (enteredPretest && !isPretestSavedRef.current) {
+      onSaveCasePretest?.(targetCaseId, enteredPretest);
+      setIsPretestSaved(true);
+    }
+    const enteredElaboration = elaborationInputRef.current.trim();
+    if (enteredElaboration && !isElaborationSavedRef.current) {
+      onSaveCaseElaboration?.(targetCaseId, enteredElaboration);
+      setIsElaborationSaved(true);
+    }
+  };
+
   // Reset states when case changes
   useEffect(() => {
+    const prevCaseId = currentCaseIdRef.current;
+    if (prevCaseId !== clinicalCase.id) {
+      flushUnsavedReflections(prevCaseId);
+      currentCaseIdRef.current = clinicalCase.id;
+    }
+
+    const nextPretest = caseProgress.casePretests?.[clinicalCase.id]?.text || '';
+    setPretestInput(nextPretest);
+    setIsPretestSaved(!!nextPretest);
+    setIsPretestSkipped(false);
+    setIsPretestExpanded(true);
+    setIsEditingPretest(false);
+
+    const nextElaboration = caseProgress.caseElaborations?.[clinicalCase.id]?.text || '';
+    setElaborationInput(nextElaboration);
+    setIsElaborationSaved(!!nextElaboration);
+    setIsElaborationSkipped(false);
+    setIsElaborationExpanded(true);
+    setIsEditingElaboration(false);
+
     // Stop any ongoing speech recognition
     if (recognitionRef.current) {
       try {
@@ -105,11 +198,14 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
     setUserAnswer('');
     baseTextRef.current = '';
     setComparisonError(null);
-    setComparisonResult(null);
+    setComparisonResult(initialComparisonResult || null);
     setRevealedQuestions({});
     setConfidence(caseProgress.caseConfidence?.[clinicalCase.id] || null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [clinicalCase.id, caseProgress.caseConfidence]);
+
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [clinicalCase.id, caseProgress.caseConfidence, caseProgress.casePretests, caseProgress.caseElaborations]);
 
   const handleSelectConfidence = (level: ConfidenceLevel) => {
     SoundEffects.playClick();
@@ -117,9 +213,48 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
     onUpdateCaseConfidence?.(clinicalCase.id, level);
   };
 
-  // Clean up speech recognition on unmount
+  const handleSavePretest = () => {
+    const trimmed = pretestInput.trim();
+    if (!trimmed) return;
+    SoundEffects.playClick();
+    onSaveCasePretest?.(clinicalCase.id, trimmed);
+    setIsPretestSaved(true);
+    setIsEditingPretest(false);
+  };
+
+  const handleSkipPretest = () => {
+    SoundEffects.playClick();
+    const trimmed = pretestInput.trim();
+    if (trimmed) {
+      onSaveCasePretest?.(clinicalCase.id, trimmed);
+      setIsPretestSaved(true);
+    }
+    setIsPretestSkipped(true);
+  };
+
+  const handleSaveElaboration = () => {
+    const trimmed = elaborationInput.trim();
+    if (!trimmed) return;
+    SoundEffects.playClick();
+    onSaveCaseElaboration?.(clinicalCase.id, trimmed);
+    setIsElaborationSaved(true);
+    setIsEditingElaboration(false);
+  };
+
+  const handleSkipElaboration = () => {
+    SoundEffects.playClick();
+    const trimmed = elaborationInput.trim();
+    if (trimmed) {
+      onSaveCaseElaboration?.(clinicalCase.id, trimmed);
+      setIsElaborationSaved(true);
+    }
+    setIsElaborationSkipped(true);
+  };
+
+  // Clean up speech recognition & save any pending text on unmount
   useEffect(() => {
     return () => {
+      flushUnsavedReflections(currentCaseIdRef.current);
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
@@ -274,6 +409,12 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   const handleCompare = async () => {
     if (!userAnswer.trim() || isComparing) return;
 
+    // Auto-save pretest before comparison starts if user filled it in
+    if (pretestInput.trim() && !isPretestSaved) {
+      onSaveCasePretest?.(clinicalCase.id, pretestInput.trim());
+      setIsPretestSaved(true);
+    }
+
     if (!isOnline || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       setComparisonError('You are currently offline. AI-graded case comparison requires an active internet connection to evaluate answers with Gemini. You can still reveal all model answers below and self-rate your diagnosis.');
       return;
@@ -347,15 +488,15 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
       });
       setRevealedQuestions(all);
 
-      // Pre-select self-rating based on AI verdict if not currently rated
+      // Pre-select self-rating based on AI verdict if not currently rated or if unsatisfactory
       const currentRatingVal = caseProgress.caseSelfRating?.[clinicalCase.id];
-      if (!currentRatingVal && data.perQuestion) {
+      if (data.perQuestion) {
         const hasCriticalIssue = data.perQuestion.some(
           p => p.status === 'missing' || p.status === 'incorrect'
         );
         if (hasCriticalIssue) {
           onUpdateSelfRating(clinicalCase.id, 'needs_review');
-        } else {
+        } else if (!currentRatingVal) {
           onUpdateSelfRating(clinicalCase.id, 'knew_it');
         }
       }
@@ -374,18 +515,19 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   const isBookmarked = (caseProgress.bookmarkedCaseIds || []).includes(clinicalCase.id);
 
   // Successive relearning queue stats for clinical cases
-  const uniqueSessionCaseIds = useMemo(() => {
-    return Array.from(new Set(sessionCases.map(c => c.id)));
-  }, [sessionCases]);
+  const computedStats = useMemo(() => {
+    return getCaseSessionRelearningStats(
+      sessionCases,
+      currentIndex,
+      caseProgress.caseSelfRating,
+      totalUniqueCases
+    );
+  }, [sessionCases, currentIndex, caseProgress.caseSelfRating, totalUniqueCases]);
 
-  const masteredCasesCount = useMemo(() => {
-    return uniqueSessionCaseIds.filter(id => {
-      const r = caseProgress.caseSelfRating?.[id];
-      return r === 'knew_it' || r === 'mastered';
-    }).length;
-  }, [uniqueSessionCaseIds, caseProgress.caseSelfRating]);
-
-  const retryCasesCount = uniqueSessionCaseIds.length - masteredCasesCount;
+  const effectiveMastered = masteredInSession ?? computedStats.masteredInSession;
+  const effectiveQueuedForRetry = queuedForRetry ?? computedStats.queuedForRetry;
+  const effectiveTotalCases = totalUniqueCases ?? computedStats.totalUniqueCases;
+  const effectiveIsRepeat = isRepeat ?? computedStats.isRepeat;
 
   // Status Badge Component
   const renderStatusBadge = (status: CaseComparisonStatus) => {
@@ -441,6 +583,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
         <button
           id="btn-case-back"
           onClick={() => {
+            flushUnsavedReflections();
             SoundEffects.playClick();
             onExit();
           }}
@@ -489,22 +632,43 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
       </div>
 
       {/* Successive Relearning Queue Indicator (Higham et al., Rawson & Dunlosky) */}
-      <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-6 px-1">
+      <div 
+        id="case-relearning-queue-status"
+        className="flex items-center justify-between text-label-small font-bold text-on-surface-variant mb-4 px-1"
+      >
         <span className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-          <span>{masteredCasesCount} of {uniqueSessionCaseIds.length} mastered this session</span>
+          <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+          <span>{effectiveMastered} of {effectiveTotalCases} mastered this session</span>
         </span>
-        {retryCasesCount > 0 ? (
-          <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-extrabold bg-amber-500/10 dark:bg-amber-500/20 px-2.5 py-0.5 rounded-lg border border-amber-500/30">
+        {effectiveQueuedForRetry > 0 ? (
+          <span 
+            id="badge-cases-queued-for-retry"
+            className="flex items-center gap-1.5 text-on-tertiary-container font-extrabold bg-tertiary-container px-2.5 py-0.5 rounded-shape-xs border border-outline-variant/30"
+          >
             <RotateCcw className="w-3 h-3" />
-            <span>{retryCasesCount} queued for retry</span>
+            <span>{effectiveQueuedForRetry} queued for retry</span>
+          </span>
+        ) : effectiveMastered === effectiveTotalCases ? (
+          <span className="text-primary font-semibold">
+            ✓ All cases mastered this session
           </span>
         ) : (
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-            ✓ All cases mastered this session
+          <span className="text-primary/80 font-medium">
+            ✓ Relearn queue clear
           </span>
         )}
       </div>
+
+      {/* Repeat Case Badge (Successive Relearning Retry) */}
+      {effectiveIsRepeat && (
+        <div 
+          id="badge-case-repeat"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-shape-full bg-tertiary-container border border-outline-variant/40 text-on-tertiary-container text-label-small font-bold mb-4 shadow-xs animate-in fade-in slide-in-from-top-1 duration-200"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span>Mistake Repeat • Successive Relearning (Attempt 2 of 2)</span>
+        </div>
+      )}
 
       {/* Main Case Card */}
       <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-xl mb-6">
@@ -531,6 +695,159 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
           <p className="text-sm sm:text-base text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
             {clinicalCase.stem}
           </p>
+        </div>
+
+        {/* Pretest Step: Initial Impression (Priming / Retrieval Practice) */}
+        <div id="case-pretest-section" className="mb-6">
+          {isPretestSaved && !isEditingPretest ? (
+            <div 
+              id="case-pretest-saved-card"
+              className="p-4 sm:p-5 rounded-2xl bg-emerald-50/50 dark:bg-[#11171F] border border-emerald-500/30 shadow-xs transition-all"
+            >
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Brain className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                      Your Initial Impression (Pretest)
+                    </h4>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                      Priming Saved
+                    </span>
+                    {savedPretestObj?.timestamp && (
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatTimestamp(savedPretestObj.timestamp)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    id="btn-edit-case-pretest"
+                    onClick={() => setIsEditingPretest(true)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Edit initial impression"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-toggle-pretest-view"
+                    onClick={() => setIsPretestExpanded(prev => !prev)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+                    title={isPretestExpanded ? "Collapse initial impression" : "Expand initial impression"}
+                  >
+                    {isPretestExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {isPretestExpanded && (
+                <div className="pt-2 animate-in fade-in duration-200">
+                  <div className="p-3 rounded-xl bg-white dark:bg-[#0E121A] border border-emerald-500/20 text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+                    {pretestInput || savedPretestObj?.text}
+                  </div>
+                  <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 italic">
+                    Formulating an initial guess before review primes semantic networks and enhances retention (Richland et al., Kornell et al.).
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : isPretestSkipped && !isEditingPretest ? (
+            <div 
+              id="case-pretest-skipped-bar"
+              className="p-3 rounded-xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400"
+            >
+              <div className="flex items-center gap-2">
+                <Brain className="w-3.5 h-3.5 text-slate-400" />
+                <span>Initial impression skipped</span>
+              </div>
+              <button
+                type="button"
+                id="btn-show-case-pretest"
+                onClick={() => {
+                  setIsPretestSkipped(false);
+                  setIsEditingPretest(true);
+                }}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              >
+                + Add Impression
+              </button>
+            </div>
+          ) : (
+            <div 
+              id="case-pretest-input-card"
+              className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-50/50 via-slate-50 to-indigo-50/30 dark:from-[#141620] dark:via-[#11141E] dark:to-[#10131D] border border-amber-200/80 dark:border-amber-500/30 shadow-xs transition-all"
+            >
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <Brain className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Initial Impression (Pretest Priming)</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                        Step 0 • Optional
+                      </span>
+                    </h4>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 mb-2.5">
+                What's your initial impression before reviewing this case? Formulating an initial guess activates prior knowledge and boosts diagnostic retention.
+              </p>
+
+              <textarea
+                id="textarea-case-pretest"
+                rows={2}
+                value={pretestInput}
+                onChange={(e) => {
+                  setPretestInput(e.target.value);
+                  setIsPretestSaved(false);
+                }}
+                placeholder="What's your initial impression before reviewing this case? (e.g. Likely acute appendicitis with localized peritonitis; verify Rovsing sign, order ultrasound...)"
+                className="w-full p-3 rounded-xl bg-white dark:bg-[#0E1118] border border-slate-300 dark:border-slate-700/80 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all resize-y leading-relaxed"
+              />
+
+              <div className="mt-2.5 flex items-center justify-between gap-3 flex-wrap">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Not graded • For retrieval priming only • Skippable anytime
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    id="btn-skip-case-pretest"
+                    onClick={handleSkipPretest}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    Skip to Case Review
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-save-case-pretest"
+                    disabled={!pretestInput.trim()}
+                    onClick={handleSavePretest}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-xs cursor-pointer ${
+                      !pretestInput.trim()
+                        ? 'opacity-50 cursor-not-allowed bg-slate-200 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700'
+                        : 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-400 font-extrabold active:scale-95'
+                    }`}
+                  >
+                    Save Impression
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Step 1: Self-Answer Section (Voice & Typed) */}
@@ -744,6 +1061,162 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
           </ErrorBoundary>
         )}
 
+        {/* Step 3: Elaborative Reflection ("Why is this the right answer?") */}
+        {/* Shown post AI-comparison OR if previously saved elaboration exists */}
+        {(comparisonResult || savedElaborationObj?.text) && (
+          <div id="case-elaboration-section" className="mb-6">
+            {isElaborationSaved && !isEditingElaboration ? (
+              <div 
+                id="case-elaboration-saved-card"
+                className="p-4 sm:p-5 rounded-2xl bg-indigo-50/50 dark:bg-[#121624] border border-indigo-500/30 shadow-xs transition-all"
+              >
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300">
+                        Why is this the right answer? (Your Reflection)
+                      </h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                        Elaboration Saved
+                      </span>
+                      {savedElaborationObj?.timestamp && (
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatTimestamp(savedElaborationObj.timestamp)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      id="btn-edit-case-elaboration"
+                      onClick={() => setIsEditingElaboration(true)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                      title="Edit clinical elaboration"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-toggle-elaboration-view"
+                      onClick={() => setIsElaborationExpanded(prev => !prev)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+                      title={isElaborationExpanded ? "Collapse elaboration" : "Expand elaboration"}
+                    >
+                      {isElaborationExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {isElaborationExpanded && (
+                  <div className="pt-2 animate-in fade-in duration-200">
+                    <div className="p-3 rounded-xl bg-white dark:bg-[#0E111A] border border-indigo-500/20 text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+                      {elaborationInput || savedElaborationObj?.text}
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 italic">
+                      Elaborative interrogation clarifies underlying pathophysiological mechanisms and deepens diagnostic mastery (Dunlosky et al.).
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : isElaborationSkipped && !isEditingElaboration ? (
+              <div 
+                id="case-elaboration-skipped-bar"
+                className="p-3 rounded-xl bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400"
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Elaboration reflection skipped</span>
+                </div>
+                <button
+                  type="button"
+                  id="btn-show-case-elaboration"
+                  onClick={() => {
+                    setIsElaborationSkipped(false);
+                    setIsEditingElaboration(true);
+                  }}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                >
+                  + Add Reflection
+                </button>
+              </div>
+            ) : (
+              <div 
+                id="case-elaboration-input-card"
+                className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/50 via-slate-50 to-purple-50/30 dark:from-[#131726] dark:via-[#111420] dark:to-[#161224] border border-indigo-200/80 dark:border-indigo-500/30 shadow-xs transition-all"
+              >
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Why is this the right answer? (Elaborative Reflection)</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                          Optional Reflection
+                        </span>
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-2.5">
+                  Explain the pathophysiological mechanisms or clinical rationale in your own words. Why is this diagnosis and management strategy correct?
+                </p>
+
+                <textarea
+                  id="textarea-case-elaboration"
+                  rows={3}
+                  value={elaborationInput}
+                  onChange={(e) => {
+                    setElaborationInput(e.target.value);
+                    setIsElaborationSaved(false);
+                  }}
+                  placeholder="In your own words: Why is this the right answer? (e.g. Luminal obstruction of the vermiform appendix leads to bacterial proliferation and mural ischemia, which is why immediate surgery is curative before transmural perforation occurs...)"
+                  className="w-full p-3.5 rounded-xl bg-white dark:bg-[#0E1118] border border-slate-300 dark:border-slate-700/80 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all resize-y leading-relaxed"
+                />
+
+                <div className="mt-2.5 flex items-center justify-between gap-3 flex-wrap">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Optional step • You can continue to questions or ratings anytime
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      id="btn-skip-case-elaboration"
+                      onClick={handleSkipElaboration}
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      Skip
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-save-case-elaboration"
+                      disabled={!elaborationInput.trim()}
+                      onClick={handleSaveElaboration}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-xs cursor-pointer ${
+                        !elaborationInput.trim()
+                          ? 'opacity-50 cursor-not-allowed bg-slate-200 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 font-extrabold active:scale-95 shadow-[0_0_12px_rgba(99,102,241,0.25)]'
+                      }`}
+                    >
+                      Save Reflection
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Sub-Questions Header & Global Controls */}
         {/* Diagnostic Confidence Check Before Revealing Answers */}
         <div className="mb-6 p-4 rounded-2xl bg-indigo-50/60 dark:bg-[#121622] border border-indigo-200/80 dark:border-indigo-800/60 shadow-sm">
@@ -932,6 +1405,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
               <button
                 id="btn-rate-needs-review"
                 onClick={() => {
+                  flushUnsavedReflections();
                   SoundEffects.playClick();
                   onUpdateSelfRating(clinicalCase.id, currentRating === 'needs_review' ? null : 'needs_review');
                 }}
@@ -948,6 +1422,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
               <button
                 id="btn-rate-knew-it"
                 onClick={() => {
+                  flushUnsavedReflections();
                   SoundEffects.playCorrect();
                   onUpdateSelfRating(clinicalCase.id, isKnewItOrMastered ? null : 'knew_it');
                 }}
@@ -982,6 +1457,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
           id="btn-prev-case"
           disabled={currentIndex === 0}
           onClick={() => {
+            flushUnsavedReflections();
             SoundEffects.playClick();
             onNavigateIndex(currentIndex - 1);
           }}
@@ -1003,6 +1479,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
           id="btn-next-case"
           disabled={currentIndex === sessionCases.length - 1}
           onClick={() => {
+            flushUnsavedReflections();
             SoundEffects.playClick();
             onNavigateIndex(currentIndex + 1);
           }}

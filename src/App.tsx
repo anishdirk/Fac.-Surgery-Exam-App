@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { allQuestions } from './data/questions';
 import { topics } from './data/topics';
 import { allCases, getCasesByTopic, getCaseById } from './data/cases';
-import { Question, UserProgress, QuizSession, ClinicalCase, CaseProgress, ConfidenceLevel } from './types';
+import { Question, UserProgress, QuizSession, ClinicalCase, CaseProgress, CaseSession, ConfidenceLevel } from './types';
 import { Navbar } from './components/Navbar';
 import { DuolingoPath } from './components/DuolingoPath';
 import { QuizCard } from './components/QuizCard';
@@ -10,7 +10,7 @@ import { QuestionBank } from './components/QuestionBank';
 import { ExamMode } from './components/ExamMode';
 import { CaseTopicSelector } from './components/CaseTopicSelector';
 import { CaseReviewCard } from './components/CaseReviewCard';
-import { MistakesReviewModal } from './components/MistakesReviewModal';
+import { ReviewView } from './components/ReviewView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { LessonCompleteModal } from './components/LessonCompleteModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -23,7 +23,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { SoundEffects } from './utils/audio';
 import { calculateXpGained, calculateNextHearts, calculateNextStreak } from './utils/scoring';
 import { exportProgressToFile, ExportedProgressData } from './utils/progressExportImport';
-import { calculateNextSrsState, formatDateKey, migrateUserProgress, migrateCaseProgress } from './utils/spacedRepetition';
+import { calculateNextSrsState, formatDateKey, migrateUserProgress, migrateCaseProgress, requeueCaseForSuccessiveRelearning, getCaseSessionRelearningStats } from './utils/spacedRepetition';
 import { AppSection, McqTab, Part2Tab } from './constants/navigation';
 
 const STORAGE_KEY = 'duomed_ru_progress_v2';
@@ -140,11 +140,7 @@ export default function App() {
   const [currentCombo, setCurrentCombo] = useState<number>(0);
 
   // Active Case Session State (For reviewing a topic's or custom set's clinical cases)
-  const [activeCaseSession, setActiveCaseSession] = useState<{
-    cases: ClinicalCase[];
-    currentIndex: number;
-    title: string;
-  } | null>(null);
+  const [activeCaseSession, setActiveCaseSession] = useState<CaseSession | null>(null);
 
   // Modals
   const [isLessonCompleteOpen, setIsLessonCompleteOpen] = useState<boolean>(false);
@@ -171,7 +167,9 @@ export default function App() {
     setActiveCaseSession({
       cases: topicCases,
       currentIndex: 0,
-      title: targetTopic ? targetTopic.titleEn : 'Clinical Cases'
+      title: targetTopic ? targetTopic.titleEn : 'Clinical Cases',
+      initialTotalCases: topicCases.length,
+      retryCountPerCase: {}
     });
   };
 
@@ -181,6 +179,7 @@ export default function App() {
 
     const topicCases = allCases.filter(c => c.topicId === targetCase.topicId);
     const indexInTopic = topicCases.findIndex(c => c.id === caseId);
+    const initialCases = topicCases.length > 0 ? topicCases : [targetCase];
 
     setCaseProgress(prev => ({
       ...prev,
@@ -190,9 +189,11 @@ export default function App() {
     }));
 
     setActiveCaseSession({
-      cases: topicCases.length > 0 ? topicCases : [targetCase],
+      cases: initialCases,
       currentIndex: indexInTopic >= 0 ? indexInTopic : 0,
-      title: targetCase.topicTitleEn
+      title: targetCase.topicTitleEn || 'Clinical Case',
+      initialTotalCases: initialCases.length,
+      retryCountPerCase: {}
     });
   };
 
@@ -210,7 +211,9 @@ export default function App() {
     setActiveCaseSession({
       cases: casesList,
       currentIndex: 0,
-      title
+      title,
+      initialTotalCases: casesList.length,
+      retryCountPerCase: {}
     });
   };
 
@@ -263,24 +266,28 @@ export default function App() {
     });
 
     // Successive Relearning for Clinical Cases (Higham et al., Rawson & Dunlosky):
-    // Re-serve missed / needs_review cases 2-3 items later in the current session
+    // Re-queue missed / needs_review cases 3-4 items later in the current session (or at the end if <= 3 remain),
+    // mirroring the exact re-queue logic used for MCQs. Capped at 1 re-queue per case (max 2 attempts per case per session).
     if (rating === 'needs_review') {
       setActiveCaseSession(prev => {
         if (!prev) return null;
-        const currentCase = prev.cases[prev.currentIndex];
+        const currentCase = prev.cases.find(c => c.id === caseId) || prev.cases[prev.currentIndex];
         if (!currentCase) return prev;
-        const remaining = prev.cases.length - (prev.currentIndex + 1);
-        const updatedCases = [...prev.cases];
-        if (remaining <= 2) {
-          updatedCases.push(currentCase);
-        } else {
-          const offset = Math.min(remaining, 3);
-          const insertIndex = prev.currentIndex + 1 + offset;
-          updatedCases.splice(insertIndex, 0, currentCase);
-        }
+
+        const { updatedCases, requeued, updatedRetryCounts } = requeueCaseForSuccessiveRelearning(
+          prev.cases,
+          prev.currentIndex,
+          currentCase,
+          prev.retryCountPerCase || {},
+          1
+        );
+
+        if (!requeued) return prev;
+
         return {
           ...prev,
-          cases: updatedCases
+          cases: updatedCases,
+          retryCountPerCase: updatedRetryCounts
         };
       });
     }
@@ -603,7 +610,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0A0C10] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 transition-colors duration-150">
+    <div className="min-h-screen w-full max-w-full bg-slate-50 dark:bg-[#0A0C10] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 transition-colors duration-150">
       
       {/* PWA Install Banner */}
       <InstallAppBanner onOpenGuide={() => setIsInstallGuideOpen(true)} />
@@ -646,7 +653,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 pb-24 md:pb-12">
+      <main className="flex-1 pb-24 md:pb-12 w-full max-w-full min-w-0">
         {/* Active Quiz Session takes full focus */}
         {activeSession ? (
           <ErrorBoundary
@@ -720,7 +727,7 @@ export default function App() {
             )}
 
             {mcqTab === 'mistakes' && (
-              <MistakesReviewModal
+              <ReviewView
                 mistakes={progress.mistakes || []}
                 bookmarkedQuestions={progress.bookmarkedQuestions || []}
                 spacedRepetition={progress.spacedRepetition || {}}
@@ -728,7 +735,6 @@ export default function App() {
                 allQuestions={allQuestions}
                 onStartReview={handlePracticeMistakes}
                 onClearMistakes={() => setProgress(prev => ({ ...prev, mistakes: [] }))}
-                onClose={() => setMcqTab('learn')}
               />
             )}
 
@@ -758,31 +764,45 @@ export default function App() {
                   resetButtonText="Return to Case Catalog"
                   onReset={() => setActiveCaseSession(null)}
                 >
-                  <CaseReviewCard
-                    clinicalCase={activeCaseSession.cases[activeCaseSession.currentIndex]}
-                    sessionCases={activeCaseSession.cases}
-                    currentIndex={activeCaseSession.currentIndex}
-                    onNavigateIndex={(newIndex) => {
-                      const nextCase = activeCaseSession.cases[newIndex];
-                      if (nextCase) {
-                        setCaseProgress(prev => ({
-                          ...prev,
-                          reviewedCaseIds: prev.reviewedCaseIds.includes(nextCase.id)
-                            ? prev.reviewedCaseIds
-                            : [...prev.reviewedCaseIds, nextCase.id]
-                        }));
-                      }
-                      setActiveCaseSession(prev => prev ? { ...prev, currentIndex: newIndex } : null);
-                    }}
-                    caseProgress={caseProgress}
-                    onUpdateSelfRating={handleUpdateCaseSelfRating}
-                    onUpdateCaseConfidence={handleUpdateCaseConfidence}
-                    onSaveCasePretest={handleSaveCasePretest}
-                    onSaveCaseElaboration={handleSaveCaseElaboration}
-                    onToggleBookmark={handleToggleCaseBookmark}
-                    onExit={() => setActiveCaseSession(null)}
-                    sessionTitle={activeCaseSession.title}
-                  />
+                  {(() => {
+                    const stats = getCaseSessionRelearningStats(
+                      activeCaseSession.cases,
+                      activeCaseSession.currentIndex,
+                      caseProgress.caseSelfRating,
+                      activeCaseSession.initialTotalCases
+                    );
+                    return (
+                      <CaseReviewCard
+                        clinicalCase={activeCaseSession.cases[activeCaseSession.currentIndex]}
+                        sessionCases={activeCaseSession.cases}
+                        currentIndex={activeCaseSession.currentIndex}
+                        onNavigateIndex={(newIndex) => {
+                          const nextCase = activeCaseSession.cases[newIndex];
+                          if (nextCase) {
+                            setCaseProgress(prev => ({
+                              ...prev,
+                              reviewedCaseIds: prev.reviewedCaseIds.includes(nextCase.id)
+                                ? prev.reviewedCaseIds
+                                : [...prev.reviewedCaseIds, nextCase.id]
+                            }));
+                          }
+                          setActiveCaseSession(prev => prev ? { ...prev, currentIndex: newIndex } : null);
+                        }}
+                        caseProgress={caseProgress}
+                        onUpdateSelfRating={handleUpdateCaseSelfRating}
+                        onUpdateCaseConfidence={handleUpdateCaseConfidence}
+                        onSaveCasePretest={handleSaveCasePretest}
+                        onSaveCaseElaboration={handleSaveCaseElaboration}
+                        onToggleBookmark={handleToggleCaseBookmark}
+                        onExit={() => setActiveCaseSession(null)}
+                        sessionTitle={activeCaseSession.title}
+                        masteredInSession={stats.masteredInSession}
+                        queuedForRetry={stats.queuedForRetry}
+                        totalUniqueCases={stats.totalUniqueCases}
+                        isRepeat={stats.isRepeat}
+                      />
+                    );
+                  })()}
                 </ErrorBoundary>
               ) : (
                 <CaseTopicSelector

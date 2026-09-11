@@ -59,26 +59,26 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
   const unstartedCount = topicStats.filter(t => t.status === 'unstarted').length;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 min-w-0">
       
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 min-w-0">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-shape-full bg-primary-container text-on-primary-container border border-outline-variant/30 font-extrabold text-label-small uppercase tracking-wider mb-2">
           <Layers className="w-3.5 h-3.5" />
           <span>Surgical Curriculum</span>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-display-small font-black text-on-surface tracking-tight">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-display-small font-black text-on-surface tracking-tight break-words">
               16 Specialty Topics
             </h1>
-            <p className="text-body-medium text-on-surface-variant font-medium mt-1 max-w-xl">
+            <p className="text-body-medium text-on-surface-variant font-medium mt-1 max-w-xl break-words">
               Select any surgical discipline to practice focused multiple-choice questions with tailored drill lengths.
             </p>
           </div>
 
           {/* Practice Batch Size Segmented Button */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
             <span className="text-label-small font-black uppercase tracking-wider text-on-surface-variant">
               Batch:
             </span>
@@ -99,14 +99,14 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
                     className={`relative px-3.5 py-1.5 rounded-shape-full text-label-medium font-black transition-colors z-10 ${
                       isSelected
                         ? 'text-on-secondary-container'
-                        : 'text-on-surface-variant hover:text-on-surface'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50'
                     }`}
                   >
                     {isSelected && (
                       <motion.div
                         layoutId="batch-size-pill"
-                        className="absolute inset-0 rounded-shape-full bg-secondary-container shadow-xs -z-10"
-                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                        className="absolute inset-0 rounded-shape-full bg-secondary-container border border-outline-variant/30 shadow-xs -z-10"
+                        transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.8 }}
                       />
                     )}
                     <span>{size} Qs</span>
@@ -119,10 +119,10 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
       </div>
 
       {/* Filter Chip Group */}
-      <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-1">
+      <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-1.5 w-full max-w-full min-w-0">
         <div 
           id="topic-filter-chip-group"
-          className="inline-flex items-center p-1 rounded-shape-full bg-surface-container border border-outline-variant/30 shadow-inner"
+          className="inline-flex items-center p-1 rounded-shape-full bg-surface-container border border-outline-variant/30 shadow-inner max-w-full"
         >
           <button
             type="button"
@@ -133,14 +133,14 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
             className={`relative px-4 py-1.5 rounded-shape-full text-label-medium font-bold transition-colors z-10 whitespace-nowrap ${
               activeFilter === 'all'
                 ? 'text-on-primary-container font-black'
-                : 'text-on-surface-variant hover:text-on-surface'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50'
             }`}
           >
             {activeFilter === 'all' && (
               <motion.div
                 layoutId="topic-filter-pill"
-                className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs -z-10"
-                transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                className="absolute inset-0 rounded-shape-full bg-primary-container border border-outline-variant/30 shadow-xs -z-10"
+                transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.8 }}
               />
             )}
             <span>All Topics ({topics.length})</span>
@@ -155,14 +155,14 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
             className={`relative px-4 py-1.5 rounded-shape-full text-label-medium font-bold transition-colors z-10 flex items-center gap-1.5 whitespace-nowrap ${
               activeFilter === 'in_progress'
                 ? 'text-on-primary-container font-black'
-                : 'text-on-surface-variant hover:text-on-surface'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50'
             }`}
           >
             {activeFilter === 'in_progress' && (
               <motion.div
                 layoutId="topic-filter-pill"
-                className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs -z-10"
-                transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                className="absolute inset-0 rounded-shape-full bg-primary-container border border-outline-variant/30 shadow-xs -z-10"
+                transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.8 }}
               />
             )}
             <Clock className="w-3.5 h-3.5" />
@@ -178,14 +178,14 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
             className={`relative px-4 py-1.5 rounded-shape-full text-label-medium font-bold transition-colors z-10 flex items-center gap-1.5 whitespace-nowrap ${
               activeFilter === 'mastered'
                 ? 'text-on-primary-container font-black'
-                : 'text-on-surface-variant hover:text-on-surface'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50'
             }`}
           >
             {activeFilter === 'mastered' && (
               <motion.div
                 layoutId="topic-filter-pill"
-                className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs -z-10"
-                transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                className="absolute inset-0 rounded-shape-full bg-primary-container border border-outline-variant/30 shadow-xs -z-10"
+                transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.8 }}
               />
             )}
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -201,14 +201,14 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
             className={`relative px-4 py-1.5 rounded-shape-full text-label-medium font-bold transition-colors z-10 whitespace-nowrap ${
               activeFilter === 'unstarted'
                 ? 'text-on-primary-container font-black'
-                : 'text-on-surface-variant hover:text-on-surface'
+                : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50'
             }`}
           >
             {activeFilter === 'unstarted' && (
               <motion.div
                 layoutId="topic-filter-pill"
-                className="absolute inset-0 rounded-shape-full bg-primary-container shadow-xs -z-10"
-                transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                className="absolute inset-0 rounded-shape-full bg-primary-container border border-outline-variant/30 shadow-xs -z-10"
+                transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.8 }}
               />
             )}
             <span>Unstarted ({unstartedCount})</span>

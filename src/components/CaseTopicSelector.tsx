@@ -96,20 +96,20 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-8 min-w-0">
       
       {/* Hero Header */}
-      <div className="mb-8">
+      <div className="mb-8 min-w-0">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-shape-full bg-primary-container text-on-primary-container border border-outline-variant/30 font-extrabold text-label-small uppercase tracking-wider mb-2">
           <Stethoscope className="w-3.5 h-3.5" />
           <span>Situational Surgery Cases</span>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-display-small font-black text-on-surface tracking-tight">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-display-small font-black text-on-surface tracking-tight break-words">
               Clinical Case Challenges ({totalCasesCount})
             </h1>
-            <p className="text-body-medium text-on-surface-variant font-medium mt-1 max-w-xl">
+            <p className="text-body-medium text-on-surface-variant font-medium mt-1 max-w-xl break-words">
               Long-form situational problems with multi-part clinical vignettes, diagnostic rationale, and surgical management.
             </p>
           </div>
@@ -124,7 +124,7 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
                 }}
                 className="self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 rounded-shape-full bg-error text-on-error hover:opacity-95 font-black text-label-large shadow-xs active:scale-95 transition-all"
               >
-                <Clock className="w-4 h-4" />
+                <Clock className="w-4 h-4 shrink-0" />
                 <span>Practice Due Cases ({dueCasesCount})</span>
               </button>
             )}
@@ -140,7 +140,7 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
               className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-shape-full bg-secondary-container text-on-secondary-container hover:opacity-90 font-black text-label-large border border-outline-variant/30 shadow-xs active:scale-95 transition-all"
               title="Interleaved practice across differential diagnoses (Rohrer & Taylor 2021)"
             >
-              <Shuffle className="w-4 h-4" />
+              <Shuffle className="w-4 h-4 shrink-0" />
               <span>Interleaved Review</span>
             </button>
 
@@ -152,7 +152,7 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
               }}
               className="self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 rounded-shape-full bg-primary text-on-primary hover:opacity-95 font-black text-label-large shadow-xs active:scale-95 transition-all"
             >
-              <Play className="w-4 h-4 fill-current" />
+              <Play className="w-4 h-4 fill-current shrink-0" />
               <span>Study All Cases</span>
             </button>
           </div>
@@ -160,26 +160,26 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
       </div>
 
       {/* Progress & Quick Stats Ribbon */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-3.5 mb-8">
         <div 
           onClick={() => {
             SoundEffects.playClick();
             setActiveFilter('due');
           }}
-          className={`p-4 rounded-shape-xl border cursor-pointer transition-all ${
+          className={`p-3.5 sm:p-4 rounded-shape-xl border cursor-pointer transition-all min-w-0 ${
             activeFilter === 'due' 
               ? 'bg-error-container text-on-error-container border-error/50 shadow-md ring-2 ring-error/40' 
               : 'bg-surface-container-high border-outline-variant/30 hover:border-error/40'
           }`}
         >
           <div className="flex items-center justify-between text-on-surface-variant text-label-small font-bold mb-1">
-            <span>Due Today</span>
-            <Clock className="w-4 h-4 text-error" />
+            <span className="truncate">Due Today</span>
+            <Clock className="w-4 h-4 text-error shrink-0" />
           </div>
           <div className="text-headline-small font-black text-error">
             {dueCasesCount}
           </div>
-          <span className="text-label-small text-on-surface-variant font-medium">SRS review queue</span>
+          <span className="text-label-small text-on-surface-variant font-medium block truncate">SRS queue</span>
         </div>
 
         <div 
@@ -187,17 +187,17 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
             SoundEffects.playClick();
             setActiveFilter('all');
           }}
-          className={`p-4 rounded-shape-xl border cursor-pointer transition-all ${
+          className={`p-3.5 sm:p-4 rounded-shape-xl border cursor-pointer transition-all min-w-0 ${
             activeFilter === 'all' 
               ? 'bg-surface-container-highest border-primary/50 shadow-md ring-2 ring-primary/40' 
               : 'bg-surface-container-high border-outline-variant/30 hover:border-primary/40'
           }`}
         >
           <div className="flex items-center justify-between text-on-surface-variant text-label-small font-bold mb-1">
-            <span>Reviewed</span>
-            <BookOpen className="w-4 h-4 text-primary" />
+            <span className="truncate">Reviewed</span>
+            <BookOpen className="w-4 h-4 text-primary shrink-0" />
           </div>
-          <div className="text-headline-small font-black text-on-surface">
+          <div className="text-headline-small font-black text-on-surface truncate">
             {reviewedCount} <span className="text-label-small text-on-surface-variant font-bold">/ {totalCasesCount}</span>
           </div>
           <div className="w-full h-1.5 bg-surface-container-highest rounded-shape-full mt-2 overflow-hidden">
@@ -213,20 +213,20 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
             SoundEffects.playClick();
             setActiveFilter('mastered');
           }}
-          className={`p-4 rounded-shape-xl border cursor-pointer transition-all ${
+          className={`p-3.5 sm:p-4 rounded-shape-xl border cursor-pointer transition-all min-w-0 ${
             activeFilter === 'mastered' 
               ? 'bg-primary-container text-on-primary-container border-primary/50 shadow-md ring-2 ring-primary/40' 
               : 'bg-surface-container-high border-outline-variant/30 hover:border-primary/40'
           }`}
         >
           <div className="flex items-center justify-between text-on-surface-variant text-label-small font-bold mb-1">
-            <span>Mastered</span>
-            <CheckCircle2 className="w-4 h-4 text-primary" />
+            <span className="truncate">Mastered</span>
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
           </div>
           <div className="text-headline-small font-black text-primary">
             {masteredCount}
           </div>
-          <span className="text-label-small text-on-surface-variant font-medium">Confident understanding</span>
+          <span className="text-label-small text-on-surface-variant font-medium block truncate">Confident understanding</span>
         </div>
 
         <div 
@@ -234,20 +234,20 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
             SoundEffects.playClick();
             setActiveFilter('needs_review');
           }}
-          className={`p-4 rounded-shape-xl border cursor-pointer transition-all ${
+          className={`p-3.5 sm:p-4 rounded-shape-xl border cursor-pointer transition-all min-w-0 ${
             activeFilter === 'needs_review' 
               ? 'bg-tertiary-container text-on-tertiary-container border-tertiary/50 shadow-md ring-2 ring-tertiary/40' 
               : 'bg-surface-container-high border-outline-variant/30 hover:border-tertiary/40'
           }`}
         >
           <div className="flex items-center justify-between text-on-surface-variant text-label-small font-bold mb-1">
-            <span>Needs Review</span>
-            <AlertCircle className="w-4 h-4 text-tertiary" />
+            <span className="truncate">Needs Review</span>
+            <AlertCircle className="w-4 h-4 text-tertiary shrink-0" />
           </div>
           <div className="text-headline-small font-black text-tertiary">
             {needsReviewCount}
           </div>
-          <span className="text-label-small text-on-surface-variant font-medium">Marked for repetition</span>
+          <span className="text-label-small text-on-surface-variant font-medium block truncate">Marked for repetition</span>
         </div>
 
         <div 
@@ -255,26 +255,26 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
             SoundEffects.playClick();
             setActiveFilter('bookmarked');
           }}
-          className={`p-4 rounded-shape-xl border cursor-pointer transition-all ${
+          className={`p-3.5 sm:p-4 rounded-shape-xl border cursor-pointer transition-all min-w-0 col-span-2 sm:col-span-1 ${
             activeFilter === 'bookmarked' 
               ? 'bg-secondary-container text-on-secondary-container border-secondary/50 shadow-md ring-2 ring-secondary/40' 
               : 'bg-surface-container-high border-outline-variant/30 hover:border-secondary/40'
           }`}
         >
           <div className="flex items-center justify-between text-on-surface-variant text-label-small font-bold mb-1">
-            <span>Bookmarked</span>
-            <Bookmark className="w-4 h-4 text-secondary fill-secondary/20" />
+            <span className="truncate">Bookmarked</span>
+            <Bookmark className="w-4 h-4 text-secondary fill-secondary/20 shrink-0" />
           </div>
           <div className="text-headline-small font-black text-secondary">
             {bookmarkedCount}
           </div>
-          <span className="text-label-small text-on-surface-variant font-medium">Saved for quick study</span>
+          <span className="text-label-small text-on-surface-variant font-medium block truncate">Saved for study</span>
         </div>
       </div>
 
       {/* Search & Filter Controls */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
-        <div className="relative flex-1 w-full">
+      <div className="flex flex-col sm:flex-row items-center gap-3 mb-6 w-full max-w-full min-w-0">
+        <div className="relative flex-1 w-full min-w-0">
           <Search className="w-4 h-4 text-on-surface-variant absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -297,7 +297,7 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
         {/* Filter Chip Group */}
         <div 
           id="case-filter-chip-group"
-          className="inline-flex items-center p-1 rounded-shape-full bg-surface-container border border-outline-variant/30 shadow-inner overflow-x-auto w-full sm:w-auto"
+          className="inline-flex items-center p-1 rounded-shape-full bg-surface-container border border-outline-variant/30 shadow-inner overflow-x-auto w-full sm:w-auto max-w-full min-w-0"
         >
           {filterOptions.map((opt) => {
             const isSelected = activeFilter === opt.id;
@@ -309,17 +309,17 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
                   SoundEffects.playClick();
                   setActiveFilter(opt.id);
                 }}
-                className={`relative px-3.5 py-1.5 rounded-shape-full text-label-medium font-bold transition-colors z-10 whitespace-nowrap flex items-center gap-1.5 ${
+                className={`relative px-3.5 py-1.5 rounded-shape-full text-label-medium font-bold transition-colors z-10 whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
                   isSelected
                     ? 'text-on-secondary-container font-black'
-                    : 'text-on-surface-variant hover:text-on-surface'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50'
                 }`}
               >
                 {isSelected && (
                   <motion.div
                     layoutId="case-filter-chip-pill"
-                    className="absolute inset-0 rounded-shape-full bg-secondary-container shadow-xs -z-10"
-                    transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                    className="absolute inset-0 rounded-shape-full bg-secondary-container border border-outline-variant/30 shadow-xs -z-10"
+                    transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.8 }}
                   />
                 )}
                 {opt.icon}

@@ -252,9 +252,35 @@
 }
 
 @layer base {
+  html {
+    overflow-x: clip;
+    overflow-y: auto;
+    width: 100%;
+  }
+
   body {
+    overflow-x: clip;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
     transition: background-color 0.2s ease, color 0.2s ease;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  @supports not (overflow: clip) {
+    html {
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    body {
+      overflow-x: hidden;
+    }
   }
 
   /* Custom subtle scrollbars */

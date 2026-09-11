@@ -1,4 +1,4 @@
-import { SpacedRepetitionItem, UserProgress, CaseProgress } from '../types';
+import { SpacedRepetitionItem, UserProgress, CaseProgress, ClinicalCase } from '../types';
 
 /**
  * Expanding intervals in days: 1, 3, 7, 14, 28 days
@@ -350,3 +350,118 @@ export function migrateCaseProgress(
     caseElaborations: raw.caseElaborations || {}
   };
 }
+
+/**
+ * Successive Relearning re-queue rule for clinical cases (Higham et al., Rawson & Dunlosky).
+ * When a case is marked as "needs_review" (or graded as unsatisfactory by AI),
+ * re-inserts that case 3-4 cases later in the session (or at the end if fewer than 4 remain),
+ * mirroring the exact re-queue logic used for MCQs.
+ * Capped at 1 re-queue per case within a session (2 attempts maximum),
+ * preventing infinite retry loops.
+ */
+export function requeueCaseForSuccessiveRelearning(
+  currentCases: ClinicalCase[],
+  currentIndex: number,
+  caseToRequeue: ClinicalCase,
+  retryCountPerCase: Record<number, number> = {},
+  maxRetriesPerCase: number = 1
+): {
+  updatedCases: ClinicalCase[];
+  requeued: boolean;
+  updatedRetryCounts: Record<number, number>;
+} {
+  const caseId = caseToRequeue.id;
+  const currentRetries = retryCountPerCase[caseId] || 0;
+
+  // Enforce retry cap: max 1 re-queue (2 attempts total per session)
+  if (currentRetries >= maxRetriesPerCase) {
+    return {
+      updatedCases: currentCases,
+      requeued: false,
+      updatedRetryCounts: retryCountPerCase
+    };
+  }
+
+  // Prevent duplicate queuing if the case is already queued ahead in the remaining session
+  const alreadyQueuedAhead = currentCases
+    .slice(currentIndex + 1)
+    .some(c => c.id === caseId);
+
+  if (alreadyQueuedAhead) {
+    return {
+      updatedCases: currentCases,
+      requeued: false,
+      updatedRetryCounts: retryCountPerCase
+    };
+  }
+
+  const updatedCases = [...currentCases];
+  const remaining = updatedCases.length - (currentIndex + 1);
+
+  if (remaining <= 3) {
+    updatedCases.push(caseToRequeue);
+  } else {
+    const offset = Math.min(remaining, 4);
+    const insertIndex = currentIndex + 1 + offset;
+    updatedCases.splice(insertIndex, 0, caseToRequeue);
+  }
+
+  return {
+    updatedCases,
+    requeued: true,
+    updatedRetryCounts: {
+      ...retryCountPerCase,
+      [caseId]: currentRetries + 1
+    }
+  };
+}
+
+/**
+ * Calculates session stats for successive relearning in clinical cases:
+ * - uniqueSessionCaseIds: array of unique case IDs in the session
+ * - totalUniqueCases: initial total unique cases in the session
+ * - masteredInSession: number of unique cases in this session rated 'knew_it' or 'mastered'
+ * - queuedForRetry: number of re-queued cases pending in the remaining session queue
+ * - isRepeat: whether current case is a repeat presentation
+ */
+export function getCaseSessionRelearningStats(
+  sessionCases: ClinicalCase[],
+  currentIndex: number,
+  caseSelfRating: Record<number, 'knew_it' | 'needs_review' | 'mastered' | undefined | null>,
+  initialTotalCases?: number
+): {
+  uniqueSessionCaseIds: number[];
+  totalUniqueCases: number;
+  masteredInSession: number;
+  queuedForRetry: number;
+  isRepeat: boolean;
+} {
+  const currentCase = sessionCases[currentIndex];
+  const uniqueSessionCaseIds = Array.from(new Set(sessionCases.map(c => c.id)));
+  const totalUniqueCases = initialTotalCases ?? uniqueSessionCaseIds.length;
+
+  const masteredInSession = uniqueSessionCaseIds.filter(id => {
+    const rating = caseSelfRating[id];
+    return rating === 'knew_it' || rating === 'mastered';
+  }).length;
+
+  // Count re-queued cases waiting in the queue ahead of current index
+  const remainingCases = sessionCases.slice(currentIndex + 1);
+  const queuedForRetry = remainingCases.filter((c, idx) => {
+    const absoluteIndex = currentIndex + 1 + idx;
+    return sessionCases.slice(0, absoluteIndex).some(prev => prev.id === c.id);
+  }).length;
+
+  const isRepeat = currentIndex > 0 && currentCase
+    ? sessionCases.slice(0, currentIndex).some(c => c.id === currentCase.id)
+    : false;
+
+  return {
+    uniqueSessionCaseIds,
+    totalUniqueCases,
+    masteredInSession,
+    queuedForRetry,
+    isRepeat
+  };
+}
+

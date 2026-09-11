@@ -80,10 +80,10 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
   }, [questions, selectedTopicId, selectedStatusFilter, searchQuery, progress]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 py-8 min-w-0">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 min-w-0">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -288,11 +288,11 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
         /* Questions List Mode (Search, filters, cards) */
         <>
           {/* Controls Bar: Search & Status Filters */}
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-md mb-6 space-y-4">
+          <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#161A23] border border-slate-200 dark:border-slate-800 shadow-md mb-6 space-y-4 w-full max-w-full min-w-0">
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 min-w-0">
           {/* Search Input */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-0">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               id="bank-search-input"
@@ -313,7 +313,7 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
           </div>
 
           {/* Status Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto min-w-0">
             {(['all', 'mistakes', 'bookmarked', 'completed', 'unattempted'] as const).map(filterKey => (
               <button
                 key={filterKey}
@@ -321,7 +321,7 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
                   SoundEffects.playClick();
                   setSelectedStatusFilter(filterKey);
                 }}
-                className={`px-3 py-2 rounded-xl text-xs font-extrabold capitalize whitespace-nowrap transition-all ${
+                className={`px-3 py-2 rounded-xl text-xs font-extrabold capitalize whitespace-nowrap transition-all shrink-0 ${
                   selectedStatusFilter === filterKey
                     ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
@@ -334,13 +334,13 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
         </div>
 
         {/* Topic Horizontal Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-thin">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-thin w-full max-w-full min-w-0">
           <button
             onClick={() => {
               SoundEffects.playClick();
               setSelectedTopicId('all');
             }}
-            className={`px-3 py-1.5 rounded-xl font-extrabold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-extrabold whitespace-nowrap transition-all shrink-0 ${
               selectedTopicId === 'all'
                 ? 'bg-emerald-500 text-slate-950 shadow-[0_0_10px_rgba(16,185,129,0.4)]'
                 : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
@@ -356,7 +356,7 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
                 SoundEffects.playClick();
                 setSelectedTopicId(t.id);
               }}
-              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
                 selectedTopicId === t.id
                   ? 'bg-emerald-500 text-slate-950 shadow-[0_0_10px_rgba(16,185,129,0.4)]'
                   : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
@@ -413,30 +413,30 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
                     : isCompleted
                     ? 'border-emerald-500/40 hover:border-emerald-500/60'
                     : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                } shadow-sm hover:shadow-md`}
+                } shadow-sm hover:shadow-md w-full max-w-full min-w-0 overflow-hidden`}
               >
                 {/* Header row */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-black text-xs">
+                <div className="flex items-start justify-between gap-3 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-black text-xs shrink-0">
                       #{q.number}
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-400 font-bold text-[11px] uppercase">
+                    <span className="px-2 py-0.5 rounded-md bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-400 font-bold text-[11px] uppercase shrink-0">
                       {q.topicId}
                     </span>
                     {q.page && (
-                      <span className="text-[11px] text-slate-500 font-medium">
+                      <span className="text-[11px] text-slate-500 font-medium shrink-0">
                         Page {q.page}
                       </span>
                     )}
 
                     {isCompleted && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-md shrink-0">
                         <CheckCircle2 className="w-3 h-3" /> Solved
                       </span>
                     )}
                     {isMistake && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded-md">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded-md shrink-0">
                         <XCircle className="w-3 h-3" /> Missed
                       </span>
                     )}
@@ -449,7 +449,7 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
                       SoundEffects.playClick();
                       onToggleBookmark(q.id);
                     }}
-                    className={`p-1.5 rounded-lg transition-colors ${
+                    className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                       isBookmarked
                         ? 'text-amber-500 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30'
                         : 'text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -463,15 +463,15 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
                 {/* Russian Question Body */}
                 <div 
                   onClick={() => setExpandedQuestionId(isExpanded ? null : q.id)}
-                  className="cursor-pointer mt-2"
+                  className="cursor-pointer mt-2 min-w-0"
                 >
-                  <p className="font-bold text-slate-900 dark:text-white text-sm sm:text-base leading-snug">
+                  <p className="font-bold text-slate-900 dark:text-white text-sm sm:text-base leading-snug break-words [overflow-wrap:anywhere]">
                     {q.questionRu}
                   </p>
 
                   {/* English Translation */}
                   {showEnglishTranslations && (q.questionEn || q.keywordsEn) && (
-                    <p className="text-xs sm:text-sm font-medium text-sky-900 dark:text-sky-200 mt-1.5 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-500/20 p-2 rounded-lg">
+                    <p className="text-xs sm:text-sm font-medium text-sky-900 dark:text-sky-200 mt-1.5 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-500/20 p-2 rounded-lg break-words [overflow-wrap:anywhere]">
                       {q.questionEn || q.keywordsEn?.join(', ')}
                     </p>
                   )}
@@ -481,18 +481,18 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
                 {!isExpanded && (
                   <div 
                     onClick={() => setExpandedQuestionId(q.id)}
-                    className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between cursor-pointer"
+                    className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between cursor-pointer gap-2 min-w-0"
                   >
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                    <div className="flex items-center gap-2 text-xs min-w-0 flex-1 overflow-hidden">
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 shrink-0">
                         Answer: {q.correctKey.toUpperCase()}
                       </span>
-                      <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-xs sm:max-w-md">
+                      <span className="font-medium text-slate-700 dark:text-slate-300 truncate min-w-0 flex-1">
                         {correctOption?.textRu}
                       </span>
                     </div>
 
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline">
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline shrink-0">
                       <span>View Options</span>
                       <ChevronDown className="w-3.5 h-3.5" />
                     </span>
@@ -501,7 +501,7 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
 
                 {/* Expanded Full Options List */}
                 {isExpanded && (
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 min-w-0">
                     <div className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Answer Choices:
                     </div>
@@ -510,7 +510,7 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
                       return (
                         <div
                           key={`bank-opt-${q.id}-${opt.key}`}
-                          className={`p-3 rounded-xl border flex items-start gap-3 text-xs sm:text-sm ${
+                          className={`p-3 rounded-xl border flex items-start gap-3 text-xs sm:text-sm min-w-0 ${
                             isCorrect
                               ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-900 dark:text-emerald-200 font-bold shadow-xs'
                               : 'bg-slate-50 dark:bg-[#0F1218] border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300'
@@ -521,16 +521,16 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
                           }`}>
                             {opt.key}
                           </span>
-                          <div className="flex-1">
-                            <div>{opt.textRu}</div>
+                          <div className="flex-1 min-w-0 break-words [overflow-wrap:anywhere]">
+                            <div className="break-words [overflow-wrap:anywhere]">{opt.textRu}</div>
                             {showEnglishTranslations && opt.textEn && (
-                              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 break-words [overflow-wrap:anywhere]">
                                 {opt.textEn}
                               </div>
                             )}
                           </div>
                           {isCorrect && (
-                            <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold rounded-md uppercase">
+                            <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold rounded-md uppercase shrink-0">
                               Correct Answer
                             </span>
                           )}
@@ -539,7 +539,7 @@ export const QuestionBank: React.FC<QuestionBankProps> = ({
                     })}
 
                     {(q.explanationEn || q.explanation) && (
-                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs font-medium mt-2">
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs font-medium mt-2 break-words [overflow-wrap:anywhere]">
                         💡 <strong className="font-bold">Medical Note:</strong> {q.explanationEn || q.explanation}
                       </div>
                     )}

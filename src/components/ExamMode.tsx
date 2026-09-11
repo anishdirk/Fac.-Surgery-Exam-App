@@ -136,12 +136,12 @@ export const ExamMode: React.FC<ExamModeProps> = ({
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Number of Questions:
               </label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
                 {[15, 30, 50, 100].map(count => (
                   <button
                     key={count}
                     onClick={() => setExamQuestionCount(count)}
-                    className={`py-3 rounded-2xl font-black text-sm transition-all ${
+                    className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-2xl font-black text-xs sm:text-sm text-center transition-all ${
                       examQuestionCount === count
                         ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.35)]'
                         : 'bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -158,12 +158,12 @@ export const ExamMode: React.FC<ExamModeProps> = ({
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Time Limit:
               </label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
                 {[15, 30, 45, 60].map(mins => (
                   <button
                     key={mins}
                     onClick={() => setExamDurationMinutes(mins)}
-                    className={`py-3 rounded-2xl font-black text-sm transition-all ${
+                    className={`py-2.5 sm:py-3 px-2 sm:px-3 rounded-2xl font-black text-xs sm:text-sm text-center transition-all ${
                       examDurationMinutes === mins
                         ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.35)]'
                         : 'bg-slate-50 dark:bg-[#0F1218] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'

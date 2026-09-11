@@ -53,9 +53,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   return (
     <>
-      <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-outline-variant/40 transition-colors">
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-3">
+      <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-outline-variant/40 transition-colors w-full max-w-full">
+        <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 min-w-0">
+          <div className="flex items-center justify-between h-14 sm:h-16 gap-1.5 sm:gap-3 min-w-0">
             
             {/* Logo & Desktop Section Switcher Area */}
             <div className="flex items-center gap-3 sm:gap-5 shrink-0">
@@ -131,7 +131,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <BookOpen 
                       className={`w-3.5 h-3.5 ${mcqTab === 'bank' ? 'text-on-secondary-container stroke-[2.25]' : 'text-outline stroke-[1.75]'}`} 
-                      fill={mcqTab === 'bank' ? 'currentColor' : 'none'}
                     />
                     <span>Question Bank (620)</span>
                   </button>
@@ -150,7 +149,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <Clock 
                       className={`w-3.5 h-3.5 ${mcqTab === 'exam' ? 'text-on-tertiary-container stroke-[2.25]' : 'text-outline stroke-[1.75]'}`} 
-                      fill={mcqTab === 'exam' ? 'currentColor' : 'none'}
                     />
                     <span>Exam Mode</span>
                   </button>
@@ -190,7 +188,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <BarChart2 
                       className={`w-3.5 h-3.5 ${mcqTab === 'analytics' ? 'text-on-primary-container stroke-[2.25]' : 'text-outline stroke-[1.75]'}`} 
-                      fill={mcqTab === 'analytics' ? 'currentColor' : 'none'}
                     />
                     <span>Analytics</span>
                   </button>
@@ -306,7 +303,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Mobile Full-Width Centered Section Switcher Row (Under Logo, md:hidden) */}
-        <div className="md:hidden px-3.5 pb-2 pt-0.5 flex justify-center border-t border-outline-variant/30 bg-surface/90">
+        <div className="md:hidden px-2 sm:px-3.5 pb-2 pt-0.5 flex justify-center border-t border-outline-variant/30 bg-surface/90 w-full max-w-full min-w-0 overflow-hidden">
           <SectionSwitcher
             section={section}
             onSelectSection={setSection}
@@ -320,10 +317,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         <nav 
           id="mobile-bottom-nav"
           aria-label="Mobile Navigation"
-          className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container/95 backdrop-blur-lg border-t border-outline-variant/40 shadow-lg"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container/95 backdrop-blur-lg border-t border-outline-variant/40 shadow-lg overflow-x-hidden w-full max-w-full"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <div className="grid grid-cols-5 h-16 w-full select-none items-center px-1">
+          <div className="grid grid-cols-5 h-16 w-full max-w-full select-none items-center px-0.5 min-w-0">
             
             {/* 1. Path Tab */}
             <button
@@ -333,9 +330,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('learn');
               }}
-              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none min-w-0 w-full"
             >
-              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[56px] sm:max-w-[64px] py-1 min-w-0 px-0.5">
                 {mcqTab === 'learn' && (
                   <motion.div
                     layoutId="mobileNavActivePill"
@@ -343,9 +340,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
                   />
                 )}
-                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <div className="relative z-10 flex flex-col items-center gap-0.5 min-w-0 max-w-full">
                   <Zap 
-                    className={`w-4 h-4 transition-transform duration-200 ${
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
                       mcqTab === 'learn' 
                         ? 'text-on-primary-container scale-110 stroke-[2.25]' 
                         : 'text-on-surface-variant stroke-[1.75]'
@@ -353,7 +350,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     fill={mcqTab === 'learn' ? 'currentColor' : 'none'}
                   />
                   <span 
-                    className={`text-label-small transition-colors duration-200 ${
+                    className={`text-[11px] leading-tight transition-colors duration-200 truncate max-w-full text-center ${
                       mcqTab === 'learn' 
                         ? 'text-on-primary-container font-extrabold' 
                         : 'text-on-surface-variant font-medium'
@@ -373,9 +370,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('bank');
               }}
-              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none min-w-0 w-full"
             >
-              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[56px] sm:max-w-[64px] py-1 min-w-0 px-0.5">
                 {mcqTab === 'bank' && (
                   <motion.div
                     layoutId="mobileNavActivePill"
@@ -383,17 +380,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                     transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
                   />
                 )}
-                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <div className="relative z-10 flex flex-col items-center gap-0.5 min-w-0 max-w-full">
                   <BookOpen 
-                    className={`w-4 h-4 transition-transform duration-200 ${
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
                       mcqTab === 'bank' 
                         ? 'text-on-primary-container scale-110 stroke-[2.25]' 
                         : 'text-on-surface-variant stroke-[1.75]'
                     }`}
-                    fill={mcqTab === 'bank' ? 'currentColor' : 'none'}
                   />
                   <span 
-                    className={`text-label-small transition-colors duration-200 ${
+                    className={`text-[11px] leading-tight transition-colors duration-200 truncate max-w-full text-center ${
                       mcqTab === 'bank' 
                         ? 'text-on-primary-container font-extrabold' 
                         : 'text-on-surface-variant font-medium'
@@ -413,9 +409,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('exam');
               }}
-              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none min-w-0 w-full"
             >
-              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[56px] sm:max-w-[64px] py-1 min-w-0 px-0.5">
                 {mcqTab === 'exam' && (
                   <motion.div
                     layoutId="mobileNavActivePill"
@@ -423,17 +419,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                     transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
                   />
                 )}
-                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <div className="relative z-10 flex flex-col items-center gap-0.5 min-w-0 max-w-full">
                   <Clock 
-                    className={`w-4 h-4 transition-transform duration-200 ${
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
                       mcqTab === 'exam' 
                         ? 'text-on-primary-container scale-110 stroke-[2.25]' 
                         : 'text-on-surface-variant stroke-[1.75]'
                     }`}
-                    fill={mcqTab === 'exam' ? 'currentColor' : 'none'}
                   />
                   <span 
-                    className={`text-label-small transition-colors duration-200 ${
+                    className={`text-[11px] leading-tight transition-colors duration-200 truncate max-w-full text-center ${
                       mcqTab === 'exam' 
                         ? 'text-on-primary-container font-extrabold' 
                         : 'text-on-surface-variant font-medium'
@@ -453,9 +448,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('mistakes');
               }}
-              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none min-w-0 w-full"
             >
-              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[56px] sm:max-w-[64px] py-1 min-w-0 px-0.5">
                 {mcqTab === 'mistakes' && (
                   <motion.div
                     layoutId="mobileNavActivePill"
@@ -463,23 +458,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                     transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
                   />
                 )}
-                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <div className="relative z-10 flex flex-col items-center gap-0.5 min-w-0 max-w-full">
                   <div className="relative">
                     <RotateCcw 
-                      className={`w-4 h-4 transition-transform duration-200 ${
+                      className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
                         mcqTab === 'mistakes' 
                           ? 'text-on-primary-container scale-110 stroke-[2.5]' 
                           : 'text-on-surface-variant stroke-[1.75]'
                       }`}
                     />
                     {mistakesCount > 0 && (
-                      <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-3.5 bg-error text-on-error rounded-shape-full text-[9px] font-black flex items-center justify-center leading-none shadow-xs">
+                      <span className="absolute -top-1 -right-1.5 px-1 min-w-[14px] h-3.5 bg-error text-on-error rounded-shape-full text-[9px] font-black flex items-center justify-center leading-none shadow-xs pointer-events-none">
                         {mistakesCount}
                       </span>
                     )}
                   </div>
                   <span 
-                    className={`text-label-small transition-colors duration-200 ${
+                    className={`text-[11px] leading-tight transition-colors duration-200 truncate max-w-full text-center ${
                       mcqTab === 'mistakes' 
                         ? 'text-on-primary-container font-extrabold' 
                         : 'text-on-surface-variant font-medium'
@@ -499,9 +494,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 SoundEffects.playClick();
                 setMcqTab('analytics');
               }}
-              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none"
+              className="relative flex flex-col items-center justify-center py-1 h-full select-none cursor-pointer focus:outline-none min-w-0 w-full"
             >
-              <div className="relative flex flex-col items-center justify-center w-full max-w-[64px] py-1">
+              <div className="relative flex flex-col items-center justify-center w-full max-w-[56px] sm:max-w-[64px] py-1 min-w-0 px-0.5">
                 {mcqTab === 'analytics' && (
                   <motion.div
                     layoutId="mobileNavActivePill"
@@ -509,17 +504,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                     transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
                   />
                 )}
-                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <div className="relative z-10 flex flex-col items-center gap-0.5 min-w-0 max-w-full">
                   <BarChart2 
-                    className={`w-4 h-4 transition-transform duration-200 ${
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
                       mcqTab === 'analytics' 
                         ? 'text-on-primary-container scale-110 stroke-[2.25]' 
                         : 'text-on-surface-variant stroke-[1.75]'
                     }`}
-                    fill={mcqTab === 'analytics' ? 'currentColor' : 'none'}
                   />
                   <span 
-                    className={`text-label-small transition-colors duration-200 ${
+                    className={`text-[11px] leading-tight transition-colors duration-200 truncate max-w-full text-center ${
                       mcqTab === 'analytics' 
                         ? 'text-on-primary-container font-extrabold' 
                         : 'text-on-surface-variant font-medium'
