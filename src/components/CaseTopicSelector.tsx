@@ -106,8 +106,8 @@ export const CaseTopicSelector: React.FC<CaseTopicSelectorProps> = ({
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
           <div className="min-w-0">
-            <h1 className="text-display-small font-black text-on-surface tracking-tight break-words">
-              Clinical Case Challenges ({totalCasesCount})
+            <h1 className="text-display-small font-bold text-on-surface tracking-tight break-words">
+              <strong>Clinical Case Challenges</strong> ({totalCasesCount})
             </h1>
             <p className="text-body-medium text-on-surface-variant font-medium mt-1 max-w-xl break-words">
               Long-form situational problems with multi-part clinical vignettes, diagnostic rationale, and surgical management.

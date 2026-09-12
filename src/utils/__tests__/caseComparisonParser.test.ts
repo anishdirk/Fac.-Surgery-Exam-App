@@ -122,4 +122,47 @@ describe('Case Comparison Response Parsing', () => {
     expect(typeof result.perQuestion[0].feedback).toBe('string');
     expect(result.perQuestion[0].feedback.length).toBeGreaterThan(0);
   });
+
+  it('correctly parses matchedPhrase and expectedPhrase when present in the response', () => {
+    const payloadWithPhrases = {
+      overallSummary: 'Good performance with minor omissions.',
+      perQuestion: [
+        {
+          questionId: 'q1',
+          status: 'incorrect',
+          feedback: 'Recommended observation instead of urgent surgical intervention.',
+          matchedPhrase: 'observation with oral analgesia',
+          expectedPhrase: 'urgent appendectomy'
+        },
+        {
+          questionId: 'q2',
+          status: 'missing',
+          feedback: 'Did not specify abdominal incision.',
+          matchedPhrase: '',
+          expectedPhrase: 'right lower quadrant McBurney incision'
+        },
+        {
+          questionId: 'q3',
+          status: 'correct',
+          feedback: 'Correct diagnostic test chosen.'
+          // matchedPhrase and expectedPhrase omitted for backward compatibility
+        }
+      ]
+    };
+
+    const result = parseCaseComparisonResponse(payloadWithPhrases);
+    expect(result.perQuestion).toHaveLength(3);
+
+    // Incorrect with both phrases
+    expect(result.perQuestion[0].matchedPhrase).toBe('observation with oral analgesia');
+    expect(result.perQuestion[0].expectedPhrase).toBe('urgent appendectomy');
+
+    // Missing with empty matchedPhrase (should be omitted or undefined) and non-empty expectedPhrase
+    expect(result.perQuestion[1].matchedPhrase).toBeUndefined();
+    expect(result.perQuestion[1].expectedPhrase).toBe('right lower quadrant McBurney incision');
+
+    // Backward compatibility: omitted phrases remain undefined without breaking
+    expect(result.perQuestion[2].matchedPhrase).toBeUndefined();
+    expect(result.perQuestion[2].expectedPhrase).toBeUndefined();
+  });
 });

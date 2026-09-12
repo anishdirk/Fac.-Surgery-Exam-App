@@ -78,11 +78,11 @@ export function registerServiceWorker() {
       const updateSW = registerSW({
         immediate: true,
         onNeedRefresh() {
-          console.log('DuoMed PWA update ready');
+          console.log('Surgery5 PWA update ready');
           updateSW(true);
         },
         onOfflineReady() {
-          console.log('DuoMed PWA ready for offline surgical exam practice');
+          console.log('Surgery5 PWA ready for offline surgical exam practice');
         },
         onRegisterError(error: any) {
           console.warn('Service Worker registration failed:', error);

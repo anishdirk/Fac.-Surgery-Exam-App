@@ -257,7 +257,7 @@ export function generateCertificatePdf(
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
   doc.text(`Official Record Issued: ${data.dateStr}`, margin + 8, footerY + 5);
-  doc.text('DuoMed Surgery Master • Autonomous Client-Side Verification', pageWidth - margin - 8, footerY + 5, { align: 'right' });
+  doc.text('Surgery5 Master • Autonomous Client-Side Verification', pageWidth - margin - 8, footerY + 5, { align: 'right' });
 
   doc.setFontSize(6.5);
   doc.text('Complies with Russian Surgical Board Exam MCQ Syllabus & Clinical Simulation Protocol', pageWidth / 2, footerY + 9, { align: 'center' });

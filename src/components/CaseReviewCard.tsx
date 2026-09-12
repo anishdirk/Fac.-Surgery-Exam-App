@@ -32,7 +32,8 @@ import {
   CaseProgress, 
   CaseComparisonResult, 
   CaseComparisonStatus,
-  ConfidenceLevel
+  ConfidenceLevel,
+  CaseSubAnswer
 } from '../types';
 import { SoundEffects } from '../utils/audio';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -88,8 +89,21 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
   // Reveal states for answers: individual per sub-question or all
   const [revealedQuestions, setRevealedQuestions] = useState<Record<string, boolean>>({});
 
-  // User free-form answer state
-  const [userAnswer, setUserAnswer] = useState<string>('');
+  // Per-sub-question user answer state (keyed by question ID)
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+  const userAnswersRef = useRef<Record<string, string>>({});
+  userAnswersRef.current = userAnswers;
+
+  // Active voice question tracking (which question is receiving dictation)
+  const [activeVoiceQuestionId, setActiveVoiceQuestionId] = useState<string | null>(null);
+  const activeVoiceQuestionIdRef = useRef<string | null>(null);
+  activeVoiceQuestionIdRef.current = activeVoiceQuestionId;
+
+  // Track focused question input
+  const [focusedQuestionId, setFocusedQuestionId] = useState<string | null>(null);
+
+  const [interimTranscript, setInterimTranscript] = useState<string>('');
+  const interimTranscriptRef = useRef<string>('');
   const [isListening, setIsListening] = useState<boolean>(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [isComparing, setIsComparing] = useState<boolean>(false);
@@ -194,8 +208,13 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
       recognitionRef.current = null;
     }
     setIsListening(false);
+    setActiveVoiceQuestionId(null);
     setSpeechError(null);
-    setUserAnswer('');
+    setUserAnswers({});
+    userAnswersRef.current = {};
+    setFocusedQuestionId(null);
+    setInterimTranscript('');
+    interimTranscriptRef.current = '';
     baseTextRef.current = '';
     setComparisonError(null);
     setComparisonResult(initialComparisonResult || null);
@@ -265,9 +284,13 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
     };
   }, []);
 
+  const getQKey = (q: { id?: string; num?: number }, idx: number): string => {
+    return q.id || String(q.num != null ? q.num : idx + 1);
+  };
+
   const totalQuestions = clinicalCase.questions.length;
   const allRevealed = clinicalCase.questions.every((q, idx) => {
-    const key = q.id || String(q.num || idx + 1);
+    const key = getQKey(q, idx);
     return !!revealedQuestions[key];
   });
 
@@ -278,7 +301,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
     } else {
       const all: Record<string, boolean> = {};
       clinicalCase.questions.forEach((q, idx) => {
-        const key = q.id || String(q.num || idx + 1);
+        const key = getQKey(q, idx);
         all[key] = true;
       });
       setRevealedQuestions(all);
@@ -293,8 +316,26 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
     }));
   };
 
-  // Toggle Speech Recognition (hardcoded en-US with full error feedback)
-  const toggleSpeechRecognition = async () => {
+  // Helper to commit interim speech into userAnswers for a specific question
+  const commitInterimSpeech = (targetQId?: string | null) => {
+    const qId = targetQId || activeVoiceQuestionIdRef.current;
+    if (qId && interimTranscriptRef.current.trim()) {
+      const pending = interimTranscriptRef.current.trim();
+      setUserAnswers(prev => {
+        const existing = prev[qId] || '';
+        const sep = existing && !existing.endsWith(' ') ? ' ' : '';
+        const updated = existing ? `${existing}${sep}${pending}` : pending;
+        baseTextRef.current = updated;
+        return { ...prev, [qId]: updated };
+      });
+      userAnswersRef.current[qId] = (userAnswersRef.current[qId] ? `${userAnswersRef.current[qId]} ` : '') + pending;
+      interimTranscriptRef.current = '';
+      setInterimTranscript('');
+    }
+  };
+
+  // Toggle Speech Recognition for a specific sub-question
+  const toggleSpeechRecognitionForQuestion = async (qId: string) => {
     const SpeechRecognition = getSpeechRecognitionClass();
     if (!SpeechRecognition) {
       setSpeechError(
@@ -305,6 +346,22 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
 
     if (isListening) {
       SoundEffects.playClick();
+      // If clicking stop on the currently active question:
+      if (activeVoiceQuestionId === qId) {
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+          } catch (e) {
+            // ignore
+          }
+        }
+        setIsListening(false);
+        commitInterimSpeech(qId);
+        setActiveVoiceQuestionId(null);
+        return;
+      }
+
+      // If switching from another question to this question:
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
@@ -312,17 +369,18 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
           // ignore
         }
       }
+      commitInterimSpeech(activeVoiceQuestionId);
       setIsListening(false);
-      return;
+      setActiveVoiceQuestionId(null);
     }
 
     setSpeechError(null);
+    setFocusedQuestionId(qId);
 
     // Request microphone permission if available via getUserMedia to trigger iframe/browser prompt smoothly
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Release tracks immediately as SpeechRecognition will manage its own audio capture
         stream.getTracks().forEach(track => track.stop());
       } catch (micErr: any) {
         console.warn('Microphone permission request failed:', micErr);
@@ -342,8 +400,13 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
-      // Store current text as base so incoming transcript appends nicely
-      baseTextRef.current = userAnswer.trim();
+      // Store current text of this question as base so incoming transcript appends nicely
+      const currentText = (userAnswersRef.current[qId] || '').trim();
+      baseTextRef.current = currentText;
+      setInterimTranscript('');
+      interimTranscriptRef.current = '';
+      setActiveVoiceQuestionId(qId);
+      activeVoiceQuestionIdRef.current = qId;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -351,23 +414,37 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
       };
 
       recognition.onresult = (event: any) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
+        const activeQ = activeVoiceQuestionIdRef.current;
+        if (!activeQ) return;
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
+        let sessionFinal = '';
+        let currentInterim = '';
+
+        for (let i = 0; i < event.results.length; ++i) {
+          const res = event.results[i];
+          const transcript = res[0].transcript;
+          if (res.isFinal) {
+            sessionFinal += transcript + ' ';
           } else {
-            interimTranscript += transcript;
+            currentInterim += transcript;
           }
         }
 
         const base = baseTextRef.current;
         const separator = base && !base.endsWith(' ') ? ' ' : '';
-        const speechContent = (finalTranscript + interimTranscript).trim();
-        const combined = base ? `${base}${separator}${speechContent}` : speechContent;
-        setUserAnswer(combined);
+        const trimmedFinal = sessionFinal.trim();
+        const lockedInText = base
+          ? (trimmedFinal ? `${base}${separator}${trimmedFinal}` : base)
+          : trimmedFinal;
+
+        // Lock confirmed/final text into userAnswers for this question
+        setUserAnswers(prev => ({ ...prev, [activeQ]: lockedInText }));
+        userAnswersRef.current[activeQ] = lockedInText;
+
+        // Keep interim unfinalized speech in separate state for muted/italic rendering
+        const trimmedInterim = currentInterim.trim();
+        setInterimTranscript(trimmedInterim);
+        interimTranscriptRef.current = trimmedInterim;
       };
 
       recognition.onerror = (event: any) => {
@@ -386,11 +463,15 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
 
         if (event.error !== 'no-speech') {
           setIsListening(false);
+          commitInterimSpeech(activeVoiceQuestionIdRef.current);
+          setActiveVoiceQuestionId(null);
         }
       };
 
       recognition.onend = () => {
         setIsListening(false);
+        commitInterimSpeech(activeVoiceQuestionIdRef.current);
+        setActiveVoiceQuestionId(null);
         baseTextRef.current = '';
       };
 
@@ -398,16 +479,65 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
       recognition.start();
     } catch (err: any) {
       console.error('Error starting speech recognition:', err);
+      setSpeechError('Failed to initialize speech recognition. Please type your answer directly.');
       setIsListening(false);
-      setSpeechError(
-        'Could not start speech recognition. You can type your answer into the box.'
-      );
+      setActiveVoiceQuestionId(null);
     }
   };
 
-  // Submit Answer to Gemini Comparison API
+  // Default toggle for voice recognition (targets active or first question)
+  const toggleSpeechRecognition = () => {
+    const targetQId = activeVoiceQuestionId || focusedQuestionId || clinicalCase.questions[0]?.id || 'q1';
+    toggleSpeechRecognitionForQuestion(targetQId);
+  };
+
+  const handleAnswerChange = (qId: string, value: string) => {
+    setUserAnswers(prev => ({ ...prev, [qId]: value }));
+    userAnswersRef.current[qId] = value;
+    if (activeVoiceQuestionId === qId) {
+      baseTextRef.current = value;
+    }
+  };
+
+  const handleClearAnswer = (qId: string) => {
+    if (isListening && activeVoiceQuestionId === qId) {
+      try {
+        recognitionRef.current?.stop();
+      } catch {}
+      setIsListening(false);
+      setActiveVoiceQuestionId(null);
+    }
+    setUserAnswers(prev => ({ ...prev, [qId]: '' }));
+    userAnswersRef.current[qId] = '';
+    setInterimTranscript('');
+    interimTranscriptRef.current = '';
+    baseTextRef.current = '';
+  };
+
+  // Compare Answer to Model Answers via Server Gemini API
   const handleCompare = async () => {
-    if (!userAnswer.trim() || isComparing) return;
+    // If speech recognition is active, commit interim and stop
+    if (isListening && activeVoiceQuestionId) {
+      commitInterimSpeech(activeVoiceQuestionId);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      setIsListening(false);
+      setActiveVoiceQuestionId(null);
+    }
+
+    const currentAnswers = userAnswersRef.current;
+    const totalQuestions = clinicalCase.questions.length;
+    const answeredCount = clinicalCase.questions.filter((q, idx) => {
+      const qId = getQKey(q, idx);
+      return (currentAnswers[qId] || '').trim().length > 0;
+    }).length;
+
+    if (answeredCount < totalQuestions || isComparing) {
+      return;
+    }
 
     // Auto-save pretest before comparison starts if user filled it in
     if (pretestInput.trim() && !isPretestSaved) {
@@ -418,16 +548,6 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
     if (!isOnline || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       setComparisonError('You are currently offline. AI-graded case comparison requires an active internet connection to evaluate answers with Gemini. You can still reveal all model answers below and self-rate your diagnosis.');
       return;
-    }
-
-    // Stop speech recognition if listening
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {
-        // ignore
-      }
-      setIsListening(false);
     }
 
     setIsComparing(true);
@@ -446,18 +566,40 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
         sessionId = 'sess_local';
       }
 
+      // Build structured per-question answers array (CaseSubAnswer[])
+      const userAnswersArray: CaseSubAnswer[] = clinicalCase.questions.map((q, idx) => {
+        const qId = getQKey(q, idx);
+        return {
+          questionId: qId,
+          num: q.num ?? (idx + 1),
+          text: (currentAnswers[qId] || '').trim()
+        };
+      });
+
+      // Build formatted combined answer for backward compatibility and narrative evaluation
+      const combinedAnswer = userAnswersArray
+        .map((ua, idx) => {
+          const q = clinicalCase.questions[idx];
+          const qText = q?.text ? ` (${q.text})` : '';
+          return `[Question ID: "${ua.questionId}"]${qText}:\n${ua.text}`;
+        })
+        .join('\n\n');
+
       const payload = {
         caseId: clinicalCase.id,
         stem: clinicalCase.stem,
         questions: clinicalCase.questions.map((q, idx) => ({
-          id: q.id || `q${idx + 1}`,
+          id: getQKey(q, idx),
+          num: q.num ?? (idx + 1),
           text: q.text
         })),
         answers: clinicalCase.answers.map((a, idx) => ({
-          questionId: a.questionId || (clinicalCase.questions[idx]?.id || `q${idx + 1}`),
+          questionId: a.questionId || getQKey(clinicalCase.questions[idx] || {}, idx),
+          num: a.num ?? (idx + 1),
           text: a.text
         })),
-        userAnswer: userAnswer.trim()
+        userAnswers: userAnswersArray,
+        userAnswer: combinedAnswer
       };
 
       const response = await fetch('/api/compare-case', {
@@ -475,7 +617,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
       }
 
       const rawData = await response.json();
-      const expectedIds = clinicalCase.questions.map((q, idx) => q.id || `q${idx + 1}`);
+      const expectedIds = clinicalCase.questions.map((q, idx) => getQKey(q, idx));
       const data: CaseComparisonResult = parseCaseComparisonResponse(rawData, expectedIds);
       setComparisonResult(data);
       SoundEffects.playCorrect();
@@ -483,7 +625,7 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
       // Automatically reveal all sub-questions and their model answers so the user can compare
       const all: Record<string, boolean> = {};
       clinicalCase.questions.forEach((q, idx) => {
-        const key = q.id || String(q.num || idx + 1);
+        const key = getQKey(q, idx);
         all[key] = true;
       });
       setRevealedQuestions(all);
@@ -850,182 +992,291 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
           )}
         </div>
 
-        {/* Step 1: Self-Answer Section (Voice & Typed) */}
-        <div className="mb-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-indigo-50/60 via-slate-50 to-emerald-50/40 dark:from-[#131722] dark:via-[#11151E] dark:to-[#0F1722] border border-indigo-200/80 dark:border-indigo-500/30 shadow-sm transition-all">
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <MessageSquarePlus className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>Your Clinical Answer</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
-                    Voice or Typed
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Talk through your complete diagnostic reasoning and surgical tactics, then compare with the model answers.
-                </p>
-              </div>
-            </div>
+        {/* Step 1: Self-Answer Section (Voice & Typed Per Sub-Question) */}
+        {(() => {
+          const totalQuestions = clinicalCase.questions.length;
+          const answeredQuestionsCount = clinicalCase.questions.filter((q, idx) => {
+            const qId = getQKey(q, idx);
+            const text = (userAnswers[qId] || '').trim();
+            const hasInterim = isListening && activeVoiceQuestionId === qId && interimTranscriptRef.current.trim().length > 0;
+            return text.length > 0 || hasInterim;
+          }).length;
+          const allQuestionsAnswered = totalQuestions > 0 && answeredQuestionsCount === totalQuestions;
 
-            {/* Voice Control */}
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <button
-                id="btn-voice-dictation"
-                type="button"
-                onClick={toggleSpeechRecognition}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                  isListening
-                    ? 'bg-rose-500 text-white border-rose-600 shadow-[0_0_12px_rgba(244,63,94,0.4)] animate-pulse'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 shadow-xs'
-                }`}
-                title={isListening ? "Stop listening" : "Start dictating in English"}
-              >
-                {isListening ? (
-                  <>
-                    <MicOff className="w-3.5 h-3.5 text-white" />
-                    <span>Stop Dictating</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>Dictate</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Speech Error Banner */}
-          {speechError && (
-            <div className="mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-300 flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <span>{speechError}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSpeechError(null)}
-                className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-bold text-xs"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
-
-          {/* Textarea Input */}
-          <div className="relative">
-            <textarea
-              id="textarea-user-case-answer"
-              rows={4}
-              value={userAnswer}
-              onChange={(e) => {
-                setUserAnswer(e.target.value);
-                baseTextRef.current = e.target.value;
-              }}
-              placeholder="State your preliminary diagnosis, key physical findings, required lab/imaging tests, differential diagnoses, and surgical tactics... (One combined answer in English)"
-              className="w-full p-3.5 rounded-xl bg-white dark:bg-[#0E1118] border border-slate-300 dark:border-slate-700/80 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all resize-y leading-relaxed"
-            />
-            {userAnswer.length > 0 && !isListening && (
-              <button
-                type="button"
-                onClick={() => {
-                  setUserAnswer('');
-                  baseTextRef.current = '';
-                }}
-                className="absolute top-2.5 right-2.5 p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Clear answer"
-              >
-                <XCircle className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Offline Notice for AI Comparison */}
-          {!isOnline && (
-            <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2.5 animate-in fade-in duration-200">
-              <WifiOff className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div className="leading-relaxed">
-                <span className="font-bold">Offline Notice: </span>
-                <span>AI diagnostic grading requires an internet connection. You can still reveal the model answers below and self-rate your answers offline.</span>
-              </div>
-            </div>
-          )}
-
-          {/* Error Message if API Call fails */}
-          {comparisonError && (
-            <div className="mt-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 text-xs text-rose-800 dark:text-rose-300 flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold">Evaluation note: </span>
-                  <span>{comparisonError}</span>
+          return (
+            <div className="mb-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-indigo-50/60 via-slate-50 to-emerald-50/40 dark:from-[#131722] dark:via-[#11151E] dark:to-[#0F1722] border border-indigo-200/80 dark:border-indigo-500/30 shadow-sm transition-all">
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <MessageSquarePlus className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Your Clinical Answers</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
+                        {totalQuestions} Sub-Questions
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      Answer each sub-question individually with your diagnostic reasoning and surgical tactics, then compare with the model answers.
+                    </p>
+                  </div>
                 </div>
               </div>
-              <button
-                onClick={handleCompare}
-                className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold text-xs hover:bg-rose-500 transition-colors shrink-0 flex items-center gap-1"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Retry</span>
-              </button>
-            </div>
-          )}
 
-          {/* Action Row */}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 pt-1">
-            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-              {isListening ? (
-                <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-bold">
-                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                  Recording voice stream in English... Editable anytime.
-                </span>
-              ) : (
-                <span>
-                  {userAnswer.trim().length > 0 
-                    ? `${userAnswer.trim().split(/\s+/).length} words • ${userAnswer.length} chars` 
-                    : 'Tip: You can type, dictate, or mix both.'}
-                </span>
+              {/* Speech Error Banner */}
+              {speechError && (
+                <div className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-300 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <span>{speechError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSpeechError(null)}
+                    className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-bold text-xs"
+                  >
+                    Dismiss
+                  </button>
+                </div>
               )}
-            </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                id="btn-compare-case-answer"
-                type="button"
-                disabled={!userAnswer.trim() || isComparing || !isOnline}
-                onClick={handleCompare}
-                title={!isOnline ? "AI comparison is unavailable offline" : undefined}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all border shadow-sm ${
-                  !userAnswer.trim() || isComparing || !isOnline
-                    ? 'opacity-60 cursor-not-allowed bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'
-                    : 'bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                }`}
-              >
-                {!isOnline ? (
-                  <>
-                    <WifiOff className="w-3.5 h-3.5 text-amber-500" />
-                    <span>AI Offline (Internet Required)</span>
-                  </>
-                ) : isComparing ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Analyzing with Gemini...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
-                    <span>Compare to Model Answer</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+              {/* Continuous Scrollable List of Sub-Questions with Inputs */}
+              <div className="space-y-4">
+                {clinicalCase.questions.map((q, idx) => {
+                  const qId = getQKey(q, idx);
+                  const displayNumber = q.num ?? (idx + 1);
+                  const isThisQuestionListening = isListening && activeVoiceQuestionId === qId;
+                  const questionAns = userAnswers[qId] || '';
+                  const trimmedAns = questionAns.trim();
+                  const wordCount = trimmedAns.length > 0 ? trimmedAns.split(/\s+/).length : 0;
+                  const charCount = questionAns.length;
+                  const isAnswered = trimmedAns.length > 0 || (isThisQuestionListening && interimTranscript.trim().length > 0);
 
-        </div>
+                  return (
+                    <div
+                      key={qId}
+                      id={`case-question-input-card-${qId}`}
+                      className={`p-4 rounded-xl border transition-all ${
+                        isThisQuestionListening
+                          ? 'bg-white dark:bg-[#0E111A] border-indigo-500 shadow-[0_0_0_2px_rgba(99,102,241,0.2)]'
+                          : 'bg-white/80 dark:bg-[#0E1118]/80 border-slate-200 dark:border-slate-800/80 shadow-xs'
+                      }`}
+                    >
+                      {/* Sub-Question Header */}
+                      <div className="flex items-start justify-between gap-3 mb-2.5">
+                        <div className="flex items-start gap-2.5 flex-1">
+                          <span className="w-5 h-5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                            {displayNumber}
+                          </span>
+                          <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                            {q.text}
+                          </p>
+                        </div>
+
+                        {/* Per-Question Voice Control */}
+                        {isSpeechSupported && (
+                          <button
+                            id={`btn-voice-dictation-${qId}`}
+                            type="button"
+                            onClick={() => toggleSpeechRecognitionForQuestion(qId)}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border shrink-0 ${
+                              isThisQuestionListening
+                                ? 'bg-rose-500 text-white border-rose-600 shadow-[0_0_10px_rgba(244,63,94,0.4)] animate-pulse'
+                                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-xs'
+                            }`}
+                            title={isThisQuestionListening ? "Stop dictating" : `Dictate answer for question ${displayNumber}`}
+                          >
+                            {isThisQuestionListening ? (
+                              <>
+                                <MicOff className="w-3 h-3 text-white" />
+                                <span>Stop</span>
+                              </>
+                            ) : (
+                              <>
+                                <Mic className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                                <span>Dictate</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Input / Live Voice Transcription */}
+                      <div className="relative">
+                        {isThisQuestionListening ? (
+                          <div
+                            id={`voice-transcription-display-${qId}`}
+                            className="w-full min-h-[84px] p-3 rounded-lg bg-indigo-50/20 dark:bg-[#0B0E16] border border-indigo-500/60 text-xs sm:text-sm leading-relaxed overflow-y-auto max-h-48"
+                          >
+                            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-indigo-100 dark:border-indigo-950/60 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                                Dictating Q{displayNumber}...
+                              </span>
+                              <span className="text-[10px] text-slate-400">English (US)</span>
+                            </div>
+
+                            {questionAns || interimTranscript ? (
+                              <div className="whitespace-pre-wrap break-words leading-relaxed">
+                                <span className="text-slate-900 dark:text-slate-100 font-normal">
+                                  {questionAns}
+                                </span>
+                                {questionAns && interimTranscript && !questionAns.endsWith(' ') ? ' ' : ''}
+                                {interimTranscript && (
+                                  <span className="text-slate-400 dark:text-slate-500 italic bg-indigo-50/60 dark:bg-indigo-950/40 px-1 py-0.5 rounded">
+                                    {interimTranscript}
+                                  </span>
+                                )}
+                                <span className="inline-block w-1.5 h-3.5 ml-1 bg-indigo-500 animate-pulse align-middle rounded-xs" />
+                              </div>
+                            ) : (
+                              <div className="py-2 text-center text-slate-400 dark:text-slate-500 italic text-xs">
+                                Listening... Speak your answer for Question {displayNumber}.
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <textarea
+                            id={`textarea-case-answer-${qId}`}
+                            data-testid={`textarea-sub-answer-${qId}`}
+                            data-case-answer-id={qId}
+                            rows={3}
+                            value={questionAns}
+                            onFocus={() => setFocusedQuestionId(qId)}
+                            onChange={(e) => handleAnswerChange(qId, e.target.value)}
+                            placeholder={`Enter your answer for question ${displayNumber}...`}
+                            className="w-full p-3 rounded-lg bg-white dark:bg-[#0B0E16] border border-slate-300 dark:border-slate-700/80 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all resize-y leading-relaxed"
+                          />
+                        )}
+
+                        {questionAns.length > 0 && !isThisQuestionListening && (
+                          <button
+                            type="button"
+                            onClick={() => handleClearAnswer(qId)}
+                            className="absolute top-2 right-2 p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            title={`Clear answer for question ${displayNumber}`}
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Per-Question Footer: Word/Char Counter & Answered Status */}
+                      <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-0.5">
+                        <span>
+                          {wordCount} {wordCount === 1 ? 'word' : 'words'} • {charCount} {charCount === 1 ? 'char' : 'chars'}
+                        </span>
+                        {isAnswered ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Answered
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                            Required
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Offline Notice for AI Comparison */}
+              {!isOnline && (
+                <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2.5 animate-in fade-in duration-200">
+                  <WifiOff className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">
+                    <span className="font-bold">Offline Notice: </span>
+                    <span>AI diagnostic grading requires an internet connection. You can still reveal the model answers below and self-rate your answers offline.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Error Message if API Call fails */}
+              {comparisonError && (
+                <div className="mt-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 text-xs text-rose-800 dark:text-rose-300 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Evaluation note: </span>
+                      <span>{comparisonError}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCompare}
+                    className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold text-xs hover:bg-rose-500 transition-colors shrink-0 flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Retry</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Bottom Action Row with Submit Button & Completion Counter */}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-indigo-100 dark:border-indigo-950/60">
+                <div data-testid="case-answer-progress" className="text-xs">
+                  {allQuestionsAnswered ? (
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      All {totalQuestions} answered • Ready to compare
+                    </span>
+                  ) : (
+                    <span className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-1.5">
+                      <HelpCircle className="w-3.5 h-3.5 text-amber-500" />
+                      {answeredQuestionsCount} of {totalQuestions} answered
+                      <span className="text-amber-700 dark:text-amber-400 font-bold ml-1">
+                        ({totalQuestions - answeredQuestionsCount} remaining)
+                      </span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    id="btn-compare-case-answer"
+                    data-testid="btn-submit-case-compare"
+                    type="button"
+                    disabled={!allQuestionsAnswered || isComparing || !isOnline}
+                    onClick={handleCompare}
+                    title={
+                      !isOnline 
+                        ? "AI comparison is unavailable offline" 
+                        : !allQuestionsAnswered 
+                        ? `Please answer all ${totalQuestions} sub-questions to compare`
+                        : undefined
+                    }
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all border shadow-sm ${
+                      !allQuestionsAnswered || isComparing || !isOnline
+                        ? 'opacity-60 cursor-not-allowed bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'
+                        : 'bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)] cursor-pointer'
+                    }`}
+                  >
+                    {!isOnline ? (
+                      <>
+                        <WifiOff className="w-3.5 h-3.5 text-amber-500" />
+                        <span>AI Offline (Internet Required)</span>
+                      </>
+                    ) : isComparing ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Analyzing with Gemini...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
+                        <span>Compare to Model Answers</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          );
+        })()}
 
         {/* AI Comparison Overall Summary Banner (if evaluated) */}
         {comparisonResult && (
@@ -1363,9 +1614,38 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
                     <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80">
                       <div className="p-2.5 rounded-xl bg-white dark:bg-[#0D1017] border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-start gap-2">
                         <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold text-indigo-900 dark:text-indigo-300">AI Feedback: </span>
-                          <span>{questionFeedback.feedback}</span>
+                        <div className="flex-1 min-w-0">
+                          <div>
+                            <span className="font-bold text-indigo-900 dark:text-indigo-300">AI Feedback: </span>
+                            <span>{questionFeedback.feedback}</span>
+                          </div>
+
+                          {/* Compact phrase-level diff comparison for missing or incorrect points */}
+                          {(questionFeedback.status === 'missing' || questionFeedback.status === 'incorrect') && questionFeedback.expectedPhrase && (
+                            <div
+                              data-testid={`phrase-diff-${questionFeedback.questionId}`}
+                              className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex flex-wrap items-center gap-1.5 text-xs"
+                            >
+                              {questionFeedback.matchedPhrase && questionFeedback.matchedPhrase.trim() ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 line-through decoration-rose-400 dark:decoration-rose-600 opacity-85">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500/80 dark:text-rose-400/80 no-underline mr-0.5">Said:</span>
+                                    "{questionFeedback.matchedPhrase.trim()}"
+                                  </span>
+                                  <span className="text-slate-400 dark:text-slate-600 font-bold mx-0.5">→</span>
+                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mr-0.5">Expected:</span>
+                                    "{questionFeedback.expectedPhrase.trim()}"
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-500/30 font-medium">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 mr-0.5">Missing:</span>
+                                  Expected "{questionFeedback.expectedPhrase.trim()}"
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1375,6 +1655,13 @@ export const CaseReviewCard: React.FC<CaseReviewCardProps> = ({
                 {/* Model Answer Drawer */}
                 {isRevealed && answer && (
                   <div className="mt-3.5 pt-3.5 border-t border-emerald-500/20 bg-emerald-50 dark:bg-emerald-950/20 p-3.5 rounded-xl border border-emerald-500/30 text-xs sm:text-sm text-emerald-950 dark:text-emerald-200 leading-relaxed animate-in fade-in duration-200">
+                    {/* Trainee's submitted answer if present */}
+                    {userAnswers[questionKey] && (
+                      <div className="mb-2.5 p-2.5 rounded-lg bg-white/70 dark:bg-[#0B0E16]/70 border border-emerald-500/20 text-xs text-slate-800 dark:text-slate-200">
+                        <span className="font-bold text-slate-600 dark:text-slate-400">Your Submitted Answer: </span>
+                        <span className="font-medium text-slate-900 dark:text-slate-100">{userAnswers[questionKey]}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5 text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>Authoritative Model Answer:</span>

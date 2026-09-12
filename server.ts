@@ -43,9 +43,25 @@ async function startServer() {
   // Clinical Case Answer Comparison via Gemini API
   app.post("/api/compare-case", async (req, res) => {
     try {
-      const { caseId, stem, stemEn, questions, answers, userAnswer } = req.body;
+      const { caseId, stem, stemEn, questions, answers, userAnswer, userAnswers } = req.body;
 
-      if (!userAnswer || typeof userAnswer !== "string" || !userAnswer.trim()) {
+      // Handle userAnswers array (CaseSubAnswer[]) or single userAnswer string
+      const rawUserAnswers: Array<{ questionId?: string; num?: number; text?: string }> =
+        Array.isArray(userAnswers) ? userAnswers : [];
+
+      const combinedFromSubAnswers = rawUserAnswers
+        .map((ua, idx) => {
+          const qId = ua.questionId || `q${idx + 1}`;
+          const text = (ua.text || '').trim();
+          return `[Question ID: "${qId}"]: ${text}`;
+        })
+        .join("\n\n");
+
+      const effectiveUserAnswer = (typeof userAnswer === "string" && userAnswer.trim())
+        ? userAnswer.trim()
+        : combinedFromSubAnswers.trim();
+
+      if (!effectiveUserAnswer) {
         return res.status(400).json({ error: "User answer text is required." });
       }
 
@@ -62,9 +78,9 @@ async function startServer() {
         "anonymous_user";
 
       // 1. In-memory Cache check (24h TTL)
-      const cachedResult = caseEvaluationCache.get(resolvedCaseId, userAnswer);
+      const cachedResult = caseEvaluationCache.get(resolvedCaseId, effectiveUserAnswer);
       if (cachedResult) {
-        const hash = generateCaseCacheKey(resolvedCaseId, userAnswer).slice(0, 8);
+        const hash = generateCaseCacheKey(resolvedCaseId, effectiveUserAnswer).slice(0, 8);
         console.log(`[CACHE HIT] Serving cached evaluation for caseId="${resolvedCaseId}" (hash: ${hash})`);
         return res.json({
           ...cachedResult,
@@ -90,7 +106,7 @@ async function startServer() {
         });
       }
 
-      const hash = generateCaseCacheKey(resolvedCaseId, userAnswer).slice(0, 8);
+      const hash = generateCaseCacheKey(resolvedCaseId, effectiveUserAnswer).slice(0, 8);
       console.log(`[GEMINI API CALL] Requesting Gemini evaluation for caseId="${resolvedCaseId}" (hash: ${hash})`);
 
       // Record submission timestamp for user cooldown
@@ -117,7 +133,25 @@ Authoritative Model Answer: ${ansText}`;
         })
         .join("\n\n");
 
-      const prompt = `You are an expert surgical educator and board examiner assessing a medical student / surgical resident's spoken or typed answer to a clinical case problem.
+      const traineeResponsesFormatted = rawUserAnswers.length > 0
+        ? `TRAINEE'S ANSWERS PER SUB-QUESTION:
+${rawUserAnswers.map((ua: any, idx: number) => {
+  const qId = ua.questionId || `q${idx + 1}`;
+  const ansText = (ua.text || '').trim() || '[No answer provided]';
+  return `[Question ID: "${qId}"]
+Trainee's Answer: ${ansText}`;
+}).join('\n\n')}
+
+COMBINED TRANSCRIPT:
+"""
+${effectiveUserAnswer}
+"""`
+        : `TRAINEE'S FREE-FORM SPOKEN/TYPED RESPONSE:
+"""
+${effectiveUserAnswer}
+"""`;
+
+      const prompt = `You are an expert surgical educator and board examiner assessing a medical student / surgical resident's answers to a clinical case problem.
 
 CLINICAL VIGNETTE:
 ${caseStem}
@@ -125,13 +159,10 @@ ${caseStem}
 CASE SUB-QUESTIONS & OFFICIAL MODEL ANSWERS:
 ${formattedQuestions}
 
-TRAINEE'S FREE-FORM SPOKEN/TYPED RESPONSE:
-"""
-${userAnswer}
-"""
+${traineeResponsesFormatted}
 
 EVALUATION INSTRUCTIONS:
-1. The trainee's answer is a single comprehensive verbal or typed narrative addressing the case in English.
+1. The trainee answered each sub-question individually (or provided a comprehensive case narrative). Evaluate each question against the trainee's specific answer for that question.
 2. Trainees may use speech-to-text dictation, which may introduce phonetic speech recognition mishearings of medical jargon or eponyms (e.g. Murphy, Blumberg, Mayo-Robson, appendectomy, cholecystitis, laparotomy). Give generous benefit of the doubt for obvious transcription typos.
 3. For EACH question ID listed above (${questions.map((q: any, idx: number) => `"${q.id || `q${idx + 1}`}"`).join(", ")}):
    - Determine status:
@@ -139,7 +170,10 @@ EVALUATION INSTRUCTIONS:
      * "partial": addresses the question but omits crucial clinical steps, safety precautions, or specifics.
      * "missing": not addressed at all in the trainee's answer.
      * "incorrect": makes a medically inaccurate, contradictory, or unsafe statement.
-   - Write a concise 1-2 sentence constructive feedback note for that question highlighting what was good, missing, or needs correction.
+    - Write a concise 1-2 sentence constructive feedback note for that question highlighting what was good, missing, or needs correction.
+   - Extract short clinical phrases (aim for specific clinical detail, e.g. "drainage if perforated" or "ultrasound of RUQ", NOT a full sentence or paragraph):
+     * matchedPhrase: the specific short phrase or clause from the trainee's answer that was evaluated (leave empty "" if nothing relevant was said or for a missing point).
+     * expectedPhrase: the specific short phrase or clause from the authoritative model answer that corresponds to this point (what should have been said).
 4. Write a supportive 2-3 sentence overall holistic summary of their clinical reasoning and situational assessment.
 
 Return STRICT JSON matching the schema.`;
@@ -148,7 +182,7 @@ Return STRICT JSON matching the schema.`;
         model: "gemini-3.7-flash",
         contents: prompt,
         config: {
-          systemInstruction: "You are an objective, encouraging surgical faculty examiner evaluating clinical case answers. Return valid JSON adhering strictly to the schema.",
+          systemInstruction: "You are an objective, encouraging surgical faculty examiner evaluating clinical case answers. Return valid JSON adhering strictly to the schema. For each question, provide constructive feedback and extract short phrase-level clinical details (matchedPhrase and expectedPhrase) highlighting the exact clinical detail rather than a full paragraph.",
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -170,6 +204,14 @@ Return STRICT JSON matching the schema.`;
                       type: Type.STRING,
                       description: "1-2 sentence constructive clinical feedback",
                     },
+                    matchedPhrase: {
+                      type: Type.STRING,
+                      description: "The specific short phrase or clause from the student's answer that was evaluated (can be empty if nothing relevant was said)",
+                    },
+                    expectedPhrase: {
+                      type: Type.STRING,
+                      description: "The specific short phrase or clause from the reference answer that corresponds to this point",
+                    },
                   },
                   required: ["questionId", "status", "feedback"],
                 },
@@ -188,7 +230,7 @@ Return STRICT JSON matching the schema.`;
       const parsedResult = JSON.parse(responseText);
 
       // Store in 24h cache for subsequent submissions of the identical answer
-      caseEvaluationCache.set(resolvedCaseId, userAnswer, parsedResult);
+      caseEvaluationCache.set(resolvedCaseId, effectiveUserAnswer, parsedResult);
 
       return res.json(parsedResult);
     } catch (err: any) {

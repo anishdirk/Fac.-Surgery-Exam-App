@@ -77,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-on-surface text-title-medium sm:text-title-large tracking-tight">SurgiMed</span>
+                    <span className="font-extrabold text-on-surface text-title-medium sm:text-title-large tracking-tight">Surgery5</span>
                     <span className="hidden sm:inline-block px-1.5 py-0.2 text-[10px] font-bold bg-primary-container/70 text-on-primary-container border border-outline-variant/50 rounded-shape-xs uppercase tracking-wider">RU-MED</span>
                   </div>
                   <p className="hidden sm:block text-label-small text-on-surface-variant font-medium -mt-0.5">Surgical Prep Suite</p>

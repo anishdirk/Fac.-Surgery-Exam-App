@@ -49,8 +49,8 @@ export const DuolingoPath: React.FC<DuolingoPathProps> = ({
               <Activity className="w-3.5 h-3.5 text-primary" />
               <span>Surgical Board Mastery</span>
             </div>
-            <h1 className="text-headline-medium sm:text-headline-large font-black tracking-tight leading-tight text-on-primary-container">
-              Surgical Exam Quest
+            <h1 className="text-headline-medium sm:text-headline-large font-bold tracking-tight leading-tight text-on-primary-container">
+              <strong>Surgical Exam Quest</strong>
             </h1>
             <p className="mt-1 text-on-primary-container/80 text-body-medium font-medium">
               620 Official Russian Surgical Questions organized into 62 bite-sized progressive levels.

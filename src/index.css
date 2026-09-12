@@ -318,12 +318,37 @@
 
 /* Material 3 Expressive Type Scale Utilities (15 styles) */
 @layer utilities {
+  /* Default M3 weights with zero-specificity (:where) so utility font-weight classes (font-black, font-bold) take priority */
+  :where(
+    .text-display-large, .typescale-display-large,
+    .text-display-medium, .typescale-display-medium,
+    .text-display-small, .typescale-display-small,
+    .text-headline-large, .typescale-headline-large,
+    .text-headline-medium, .typescale-headline-medium,
+    .text-headline-small, .typescale-headline-small,
+    .text-body-large, .typescale-body-large,
+    .text-body-medium, .typescale-body-medium,
+    .text-body-small, .typescale-body-small
+  ) {
+    font-weight: 400;
+  }
+
+  :where(
+    .text-title-large, .typescale-title-large,
+    .text-title-medium, .typescale-title-medium,
+    .text-title-small, .typescale-title-small,
+    .text-label-large, .typescale-label-large,
+    .text-label-medium, .typescale-label-medium,
+    .text-label-small, .typescale-label-small
+  ) {
+    font-weight: 500;
+  }
+
   .text-display-large,
   .typescale-display-large {
     font-size: var(--typescale-display-large-size);
     line-height: var(--typescale-display-large-line-height);
     letter-spacing: var(--typescale-display-large-tracking);
-    font-weight: var(--typescale-display-large-weight);
   }
 
   .text-display-medium,
@@ -331,7 +356,6 @@
     font-size: var(--typescale-display-medium-size);
     line-height: var(--typescale-display-medium-line-height);
     letter-spacing: var(--typescale-display-medium-tracking);
-    font-weight: var(--typescale-display-medium-weight);
   }
 
   .text-display-small,
@@ -339,7 +363,6 @@
     font-size: var(--typescale-display-small-size);
     line-height: var(--typescale-display-small-line-height);
     letter-spacing: var(--typescale-display-small-tracking);
-    font-weight: var(--typescale-display-small-weight);
   }
 
   .text-headline-large,
@@ -347,7 +370,6 @@
     font-size: var(--typescale-headline-large-size);
     line-height: var(--typescale-headline-large-line-height);
     letter-spacing: var(--typescale-headline-large-tracking);
-    font-weight: var(--typescale-headline-large-weight);
   }
 
   .text-headline-medium,
@@ -355,7 +377,6 @@
     font-size: var(--typescale-headline-medium-size);
     line-height: var(--typescale-headline-medium-line-height);
     letter-spacing: var(--typescale-headline-medium-tracking);
-    font-weight: var(--typescale-headline-medium-weight);
   }
 
   .text-headline-small,
@@ -363,7 +384,6 @@
     font-size: var(--typescale-headline-small-size);
     line-height: var(--typescale-headline-small-line-height);
     letter-spacing: var(--typescale-headline-small-tracking);
-    font-weight: var(--typescale-headline-small-weight);
   }
 
   .text-title-large,
@@ -371,7 +391,6 @@
     font-size: var(--typescale-title-large-size);
     line-height: var(--typescale-title-large-line-height);
     letter-spacing: var(--typescale-title-large-tracking);
-    font-weight: var(--typescale-title-large-weight);
   }
 
   .text-title-medium,
@@ -379,7 +398,6 @@
     font-size: var(--typescale-title-medium-size);
     line-height: var(--typescale-title-medium-line-height);
     letter-spacing: var(--typescale-title-medium-tracking);
-    font-weight: var(--typescale-title-medium-weight);
   }
 
   .text-title-small,
@@ -387,7 +405,6 @@
     font-size: var(--typescale-title-small-size);
     line-height: var(--typescale-title-small-line-height);
     letter-spacing: var(--typescale-title-small-tracking);
-    font-weight: var(--typescale-title-small-weight);
   }
 
   .text-body-large,
@@ -395,7 +412,6 @@
     font-size: var(--typescale-body-large-size);
     line-height: var(--typescale-body-large-line-height);
     letter-spacing: var(--typescale-body-large-tracking);
-    font-weight: var(--typescale-body-large-weight);
   }
 
   .text-body-medium,
@@ -403,7 +419,6 @@
     font-size: var(--typescale-body-medium-size);
     line-height: var(--typescale-body-medium-line-height);
     letter-spacing: var(--typescale-body-medium-tracking);
-    font-weight: var(--typescale-body-medium-weight);
   }
 
   .text-body-small,
@@ -411,7 +426,6 @@
     font-size: var(--typescale-body-small-size);
     line-height: var(--typescale-body-small-line-height);
     letter-spacing: var(--typescale-body-small-tracking);
-    font-weight: var(--typescale-body-small-weight);
   }
 
   .text-label-large,
@@ -419,7 +433,6 @@
     font-size: var(--typescale-label-large-size);
     line-height: var(--typescale-label-large-line-height);
     letter-spacing: var(--typescale-label-large-tracking);
-    font-weight: var(--typescale-label-large-weight);
   }
 
   .text-label-medium,
@@ -427,7 +440,6 @@
     font-size: var(--typescale-label-medium-size);
     line-height: var(--typescale-label-medium-line-height);
     letter-spacing: var(--typescale-label-medium-tracking);
-    font-weight: var(--typescale-label-medium-weight);
   }
 
   .text-label-small,
@@ -435,6 +447,5 @@
     font-size: var(--typescale-label-small-size);
     line-height: var(--typescale-label-small-line-height);
     letter-spacing: var(--typescale-label-small-tracking);
-    font-weight: var(--typescale-label-small-weight);
   }
 }

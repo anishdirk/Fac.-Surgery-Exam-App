@@ -68,10 +68,22 @@ export function parseCaseComparisonResponse(
         ? item.feedback.trim()
         : 'Review the authoritative model answer for comprehensive details.';
 
+    const matchedPhrase =
+      typeof item.matchedPhrase === 'string' && item.matchedPhrase.trim()
+        ? item.matchedPhrase.trim()
+        : undefined;
+
+    const expectedPhrase =
+      typeof item.expectedPhrase === 'string' && item.expectedPhrase.trim()
+        ? item.expectedPhrase.trim()
+        : undefined;
+
     processedQuestions.push({
       questionId,
       status,
-      feedback
+      feedback,
+      ...(matchedPhrase ? { matchedPhrase } : {}),
+      ...(expectedPhrase ? { expectedPhrase } : {})
     });
     seenQuestionIds.add(questionId);
   });

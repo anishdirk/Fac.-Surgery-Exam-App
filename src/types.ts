@@ -157,6 +157,8 @@ export interface QuestionComparisonFeedback {
   questionId: string;
   status: CaseComparisonStatus;
   feedback: string;
+  matchedPhrase?: string;
+  expectedPhrase?: string;
 }
 
 export interface CaseComparisonResult {
